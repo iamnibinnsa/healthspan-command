@@ -1,7 +1,9 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Activity } from "lucide-react";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Activity, LogIn, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import { useTwin } from "@/lib/twin-context";
+import { supabase } from "@/lib/supabase";
 
 const NAV = [
   { to: "/intake", label: "Intake" },
@@ -16,6 +18,14 @@ const NAV = [
 
 export function Layout({ children }: { children: ReactNode }) {
   const { location } = useRouterState();
+  const { user } = useTwin();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col">
       <AmbientBackground />
@@ -51,12 +61,23 @@ export function Layout({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          <Link
-            to="/upload"
-            className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-xs font-semibold btn-hero"
-          >
-            Start Scan
-          </Link>
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold glass hover:neon-border-blue transition"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign out
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold btn-hero"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              Sign in
+            </Link>
+          )}
         </div>
       </header>
 
