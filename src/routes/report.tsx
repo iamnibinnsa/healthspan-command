@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { useTwin } from "@/lib/twin-context";
 import { INITIAL_DOMAINS, INTERVENTIONS, SAMPLE_BIOMARKERS, projectScores } from "@/lib/mockData";
-import { Download, FileText, Copy, ArrowLeft, Printer } from "lucide-react";
+import { FileText, Copy, ArrowLeft, Printer } from "lucide-react";
 
 export const Route = createFileRoute("/report")({
   component: Report,
