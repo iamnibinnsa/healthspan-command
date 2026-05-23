@@ -3,6 +3,9 @@ import { useState } from "react";
 import { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X } from "lucide-react";
 import { INITIAL_DOMAINS, projectScores, statusColor, type DomainKey } from "@/lib/mockData";
 import { useTwin } from "@/lib/twin-context";
+import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
+import { TrustNote } from "@/components/TrustNote";
+import { FRIENDLY_COPY } from "@/lib/copy";
 
 export const Route = createFileRoute("/twin")({
   component: TwinMap,
@@ -33,8 +36,10 @@ function TwinMap() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-      <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">Digital Twin Map</div>
-      <h1 className="text-4xl font-display font-semibold mt-1 mb-8">Your six-system body map</h1>
+      <div className="text-xs font-mono uppercase tracking-[0.3em]" style={{ color: "var(--friendly-teal)" }}>Your body map</div>
+      <h1 className="text-4xl font-display font-semibold mt-1 mb-3">Six gentle systems to explore</h1>
+      <TrustNote className="mb-6 max-w-2xl">{FRIENDLY_COPY.signalDisclaimer}</TrustNote>
+
 
       <div className="grid lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 glass rounded-3xl p-8 relative overflow-hidden">
@@ -92,13 +97,12 @@ function TwinMap() {
                 </button>
               </div>
               <div className="flex items-baseline gap-3">
-                <div className={`font-display text-5xl text-[var(--${statusColor(activeNode.status)})]`}>
+                <div className="font-display text-5xl" style={{ color: "var(--friendly-teal)" }}>
                   {activeNode.score}
                 </div>
-                <div className={`text-xs uppercase tracking-wider text-[var(--${statusColor(activeNode.status)})]`}>
-                  {activeNode.status}
-                </div>
+                <FriendlyStatusBadge status={activeNode.status} />
               </div>
+
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Drivers</div>
                 <ul className="space-y-1.5 text-sm">

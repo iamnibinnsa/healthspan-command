@@ -3,16 +3,19 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
 import {
-  Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, AlertTriangle, ArrowRight,
+  Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, Leaf, ArrowRight,
 } from "lucide-react";
 import { useTwin } from "@/lib/twin-context";
 import {
-  INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, SAMPLE_BIOMARKERS, projectScores, statusColor,
+  INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, SAMPLE_BIOMARKERS, projectScores,
 } from "@/lib/mockData";
 import { HealthGauge } from "@/components/HealthGauge";
-import { StatusPill } from "@/components/StatusPill";
 import { ScoreBreakdown } from "@/components/ScoreBreakdown";
 import { computeHealthspan } from "@/lib/scoringEngine";
+import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
+import { GentleMetricCard } from "@/components/GentleMetricCard";
+import { TrustNote } from "@/components/TrustNote";
+import { FRIENDLY_COPY } from "@/lib/copy";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -33,15 +36,19 @@ function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">
-            Mission Control · {intake.name}
+          <div className="text-xs font-mono uppercase tracking-[0.3em]" style={{ color: "var(--friendly-teal)" }}>
+            Your twin dashboard · {intake.name}
           </div>
-          <h1 className="text-4xl font-display font-semibold mt-1">Healthspan Mission Control</h1>
+          <h1 className="text-4xl font-display font-semibold mt-1">{FRIENDLY_COPY.heroTitle}</h1>
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{FRIENDLY_COPY.heroSubtitle}</p>
         </div>
         <Link to="/simulator" className="px-4 py-2 rounded-lg btn-hero text-xs font-semibold inline-flex items-center gap-2">
-          Open Simulator <ArrowRight className="h-3 w-3" />
+          Try gentle what-ifs <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
+
+      <TrustNote>{FRIENDLY_COPY.signalDisclaimer}</TrustNote>
+
 
       {/* Top row */}
       <div className="grid lg:grid-cols-12 gap-4">
@@ -65,20 +72,25 @@ function Dashboard() {
         </div>
 
         <div className="lg:col-span-5 glass rounded-2xl p-6">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Top 3 healthspan bottlenecks</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">{FRIENDLY_COPY.areasToNurture}</div>
           <div className="space-y-3">
-            {bottlenecks.map((b) => (
-              <div key={b.key} className="flex items-center gap-3 p-3 rounded-xl glass-soft">
-                <AlertTriangle className="h-4 w-4 text-[var(--neon-orange)]" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{b.label}</div>
-                  <div className="text-[11px] text-muted-foreground">{b.drivers.join(" · ")}</div>
+            {bottlenecks.map((b) => {
+              const status = b.score >= 75 ? "optimal" : b.score >= 60 ? "watch" : "priority";
+              return (
+                <div key={b.key} className="flex items-center gap-3 p-3 rounded-xl glass-soft">
+                  <Leaf className="h-4 w-4" style={{ color: "var(--friendly-amber)" }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{b.label}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{b.drivers.join(" · ")}</div>
+                  </div>
+                  <FriendlyStatusBadge status={status} />
+                  <div className="font-mono text-sm" style={{ color: "var(--friendly-amber)" }}>{b.score}</div>
                 </div>
-                <div className="font-mono text-sm neon-text-orange">{b.score}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
+
       </div>
 
       {/* Radar + system cards */}
@@ -119,45 +131,42 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Biomarkers */}
+      {/* Helpful signals (was: Biomarker flags table) */}
       <div className="glass rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Biomarker flags</div>
-          <span className="text-[11px] text-muted-foreground">12 markers analyzed</span>
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">{FRIENDLY_COPY.helpfulSignals}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Markers are signals, not judgments — they just hint at what to support next.</div>
+          </div>
+          <span className="text-[11px] text-muted-foreground">{SAMPLE_BIOMARKERS.length} signals reviewed</span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs uppercase tracking-wider text-muted-foreground text-left">
-                <th className="py-2 font-medium">Marker</th>
-                <th className="py-2 font-medium">Value</th>
-                <th className="py-2 font-medium">Optimal</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SAMPLE_BIOMARKERS.map((b) => {
-                const c = statusColor(b.status);
-                return (
-                  <tr key={b.name} className="border-t border-border/40">
-                    <td className="py-3 font-medium">{b.name}</td>
-                    <td className="py-3 font-mono">{b.value} <span className="text-muted-foreground text-xs">{b.unit}</span></td>
-                    <td className="py-3 text-muted-foreground">{b.optimal}</td>
-                    <td className="py-3">
-                      <StatusPill status={b.status} />
-                      <span className="hidden" data-c={c} />
-                    </td>
-                    <td className="py-3 text-xs text-muted-foreground">{b.note ?? "—"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {SAMPLE_BIOMARKERS.map((b) => {
+            const tone: "mint" | "amber" | "coral" =
+              b.status === "optimal" ? "mint" : b.status === "watch" ? "amber" : "coral";
+            const friendly = b.status === "optimal" ? "optimal" : b.status === "watch" ? "watch" : "priority";
+            return (
+              <GentleMetricCard
+                key={b.name}
+                label={b.name}
+                value={b.value}
+                unit={b.unit}
+                target={b.optimal}
+                tone={tone}
+                hint={
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <FriendlyStatusBadge status={friendly} />
+                    {b.note && <span className="text-[11px] text-muted-foreground">{b.note}</span>}
+                  </div>
+                }
+              />
+            );
+          })}
         </div>
       </div>
 
       <ScoreBreakdown breakdown={breakdown} />
+
 
 
 

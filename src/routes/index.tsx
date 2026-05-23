@@ -1,5 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Brain, HeartPulse, Activity, Moon, Dumbbell, Flame, Atom } from "lucide-react";
+import { Brain, HeartPulse, Activity, Moon, Dumbbell, Flame, Sparkles, Compass } from "lucide-react";
+import { FRIENDLY_COPY } from "@/lib/copy";
+import { GamifiedCTA } from "@/components/GamifiedCTA";
+import { TrustNote } from "@/components/TrustNote";
+import { InsightCard } from "@/components/InsightCard";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -9,82 +13,133 @@ function Landing() {
   return (
     <div className="relative">
       {/* Hero */}
-      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-28">
+      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-20">
         <div className="grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 space-y-7">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-wide"
+              style={{
+                color: "var(--friendly-mint)",
+                background: "color-mix(in oklab, var(--friendly-mint) 12%, transparent)",
+                border: "1px solid color-mix(in oklab, var(--friendly-mint) 35%, transparent)",
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              A calmer way to understand your body
+            </div>
+
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-semibold leading-[1.02]">
-              Your body has{" "}
-              <span className="bg-gradient-to-r from-[var(--neon-blue)] via-[var(--neon-green)] to-[var(--neon-orange)] bg-clip-text text-transparent">
-                telemetry
+              {FRIENDLY_COPY.heroTitle.split("future-health twin")[0]}
+              <span className="bg-gradient-to-r from-[var(--friendly-teal)] via-[var(--friendly-mint)] to-[var(--friendly-sky)] bg-clip-text text-transparent">
+                future-health twin
               </span>
-              .<br />
-              MediTwin turns it into a{" "}
-              <span className="neon-text-green">mission plan</span>.
+              .
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              Most tools measure you. MediTwin models you. Upload labs, map risks across six body
-              systems, simulate interventions, and generate your 90-day plan.
+              {FRIENDLY_COPY.heroSubtitle} Upload labs, explore six body systems,
+              try gentle what-if changes, and unlock your 90-day quest plan — at your own pace.
             </p>
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Link to="/intake" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl btn-hero text-sm font-semibold">
-                Start Healthspan Scan <ArrowRight className="h-4 w-4" />
+            <div className="flex flex-wrap gap-3 pt-2 items-center">
+              <Link to="/intake">
+                <GamifiedCTA size="lg" tone="teal" xp={10}>
+                  {FRIENDLY_COPY.ctaStart}
+                </GamifiedCTA>
               </Link>
               <Link
                 to="/upload"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl glass text-sm font-semibold hover:neon-border-green transition"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl glass text-sm font-semibold hover:brightness-110 transition"
               >
-                Try Sample Demo
+                {FRIENDLY_COPY.ctaSampleLab}
               </Link>
             </div>
-            <div className="flex items-center gap-6 pt-4 text-xs text-muted-foreground">
-              <Stat label="Body systems modeled" value="6" />
-              <Stat label="Biomarkers tracked" value="12+" />
-              <Stat label="Plan horizon" value="90 days" />
+
+            <TrustNote className="max-w-xl">
+              {FRIENDLY_COPY.signalDisclaimer}
+            </TrustNote>
+
+            <div className="flex items-center gap-6 pt-2 text-xs text-muted-foreground">
+              <Stat label="Body systems mapped" value="6" />
+              <Stat label="Helpful signals tracked" value="12+" />
+              <Stat label="Quest horizon" value="90 days" />
             </div>
           </div>
 
-          {/* Twin diagram */}
+          {/* Twin diagram — preserved */}
           <div className="lg:col-span-5">
             <div className="relative aspect-square glass rounded-3xl p-6 overflow-hidden">
               <div className="absolute inset-0 grid-bg opacity-30" />
-              <div className="absolute inset-6 rounded-full border border-[var(--neon-blue)]/30 animate-pulse" />
-              <div className="absolute inset-12 rounded-full border border-[var(--neon-green)]/30" />
-              <div className="absolute inset-20 rounded-full border border-[var(--neon-orange)]/30" />
+              <div className="absolute inset-6 rounded-full border border-[var(--friendly-teal)]/40 animate-pulse" />
+              <div className="absolute inset-12 rounded-full border border-[var(--friendly-mint)]/30" />
+              <div className="absolute inset-20 rounded-full border border-[var(--friendly-sky)]/30" />
               <div className="absolute inset-6 sweep">
-                <div className="absolute top-1/2 left-1/2 h-1/2 w-1/2 origin-top-left -translate-x-0 -translate-y-0"
-                  style={{ background: "conic-gradient(from 0deg, color-mix(in oklab, var(--neon-blue) 35%, transparent), transparent 60deg)" }}
+                <div
+                  className="absolute top-1/2 left-1/2 h-1/2 w-1/2 origin-top-left"
+                  style={{ background: "conic-gradient(from 0deg, color-mix(in oklab, var(--friendly-teal) 35%, transparent), transparent 60deg)" }}
                 />
               </div>
               <div className="relative h-full grid grid-cols-3 grid-rows-3 items-center justify-items-center">
-                <NodeIcon Icon={Brain} color="neon-blue" pos="" />
+                <NodeIcon Icon={Brain} color="neon-blue" />
                 <div />
-                <NodeIcon Icon={HeartPulse} color="neon-red" pos="" />
-                <NodeIcon Icon={Activity} color="neon-orange" pos="" />
+                <NodeIcon Icon={HeartPulse} color="neon-red" />
+                <NodeIcon Icon={Activity} color="neon-orange" />
                 <div className="text-center">
                   <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Twin</div>
                   <div className="font-display text-2xl neon-text-green">Alex M.</div>
                   <div className="text-[10px] text-muted-foreground">Age 48</div>
                 </div>
-                <NodeIcon Icon={Flame} color="neon-orange" pos="" />
-                <NodeIcon Icon={Dumbbell} color="neon-green" pos="" />
+                <NodeIcon Icon={Flame} color="neon-orange" />
+                <NodeIcon Icon={Dumbbell} color="neon-green" />
                 <div />
-                <NodeIcon Icon={Moon} color="neon-blue" pos="" />
+                <NodeIcon Icon={Moon} color="neon-blue" />
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Friendly journey overview */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <InsightCard
+            tone="teal"
+            icon={<Compass className="h-4 w-4" />}
+            title="Quick intake quest"
+          >
+            Tell us a little about your sleep, movement, and goals — about 60 seconds.
+          </InsightCard>
+          <InsightCard
+            tone="mint"
+            icon={<Sparkles className="h-4 w-4" />}
+            title="Meet your body map"
+          >
+            Six gentle body systems light up with helpful signals — never red alerts.
+          </InsightCard>
+          <InsightCard
+            tone="sky"
+            icon={<Activity className="h-4 w-4" />}
+            title="Your 90-day quest plan"
+          >
+            Small, doable steps designed to nurture the areas that need it most.
+          </InsightCard>
+        </div>
+      </section>
+
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
-        <div className="glass rounded-3xl p-10 text-center neon-border-blue">
+        <div
+          className="rounded-3xl p-10 text-center glass-soft"
+          style={{
+            borderColor: "color-mix(in oklab, var(--friendly-teal) 35%, transparent)",
+            boxShadow: "0 20px 60px -30px color-mix(in oklab, var(--friendly-teal) 60%, transparent)",
+          }}
+        >
           <h3 className="text-3xl font-display font-semibold">Ready to meet your twin?</h3>
-          <p className="text-sm text-muted-foreground mt-2">Demo runs in under 2 minutes with sample data.</p>
+          <p className="text-sm text-muted-foreground mt-2">{FRIENDLY_COPY.questIntro}</p>
           <div className="mt-6 flex justify-center gap-3 flex-wrap">
-            <Link to="/intake" className="px-6 py-3 rounded-xl btn-hero text-sm font-semibold">
-              Start Healthspan Scan
+            <Link to="/intake">
+              <GamifiedCTA tone="teal" xp={10}>{FRIENDLY_COPY.ctaStart}</GamifiedCTA>
             </Link>
-            <Link to="/upload" className="px-6 py-3 rounded-xl glass-soft text-sm font-semibold">
-              Try Sample Demo
+            <Link to="/upload" className="px-5 py-2.5 rounded-xl glass-soft text-sm font-semibold">
+              {FRIENDLY_COPY.ctaSampleLab}
             </Link>
           </div>
         </div>
@@ -102,9 +157,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function NodeIcon({ Icon, color }: { Icon: React.ComponentType<{ className?: string }>; color: string; pos?: string }) {
+function NodeIcon({ Icon, color }: { Icon: React.ComponentType<{ className?: string }>; color: string }) {
   return (
-    <div className={`relative h-14 w-14 rounded-2xl glass flex items-center justify-center float`}>
+    <div className="relative h-14 w-14 rounded-2xl glass flex items-center justify-center float">
       <Icon className={`h-6 w-6 text-[var(--${color})]`} />
       <span className={`absolute inset-0 rounded-2xl neon-border-${color === "neon-red" ? "red" : color.split("-")[1]} opacity-50`} />
     </div>

@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTwin } from "@/lib/twin-context";
 import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ProgressQuestStepper } from "@/components/ProgressQuestStepper";
+
 
 export const Route = createFileRoute("/intake")({
   component: Intake,
@@ -28,12 +30,27 @@ function Intake() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-      <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">
-        Step {step + 1} of 4
+      <div className="text-xs font-mono uppercase tracking-[0.3em]" style={{ color: "var(--friendly-teal)" }}>
+        Quest {step + 1} of 4
       </div>
-      <h1 className="text-4xl font-display font-semibold mt-2 mb-8">Healthspan Intake</h1>
+      <h1 className="text-4xl font-display font-semibold mt-2 mb-4">Tell us about you</h1>
+      <p className="text-sm text-muted-foreground mb-6 max-w-xl">
+        A few friendly questions so your twin can suggest the kindest next steps. No judgment — just signals.
+      </p>
+
+      <ProgressQuestStepper
+        className="mb-6"
+        currentIndex={step}
+        steps={[
+          { label: "About you" },
+          { label: "Sleep & move" },
+          { label: "Stress & food" },
+          { label: "History" },
+        ]}
+      />
 
       <div className="glass rounded-3xl p-8 space-y-6 min-h-[420px]">
+
         {step === 0 && (
           <>
             <Field label="Name">
