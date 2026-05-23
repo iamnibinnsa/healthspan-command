@@ -54,6 +54,7 @@ const AI_API_BASE = import.meta.env.VITE_AI_API_BASE ?? "http://127.0.0.1:8000";
 
 function LabUpload() {
   const { setLabsLoaded, setParsedBiomarkers, user } = useTwin();
+  const { awardXp, awardBadge } = useTwinProgress();
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [stage, setStage] = useState(0);
