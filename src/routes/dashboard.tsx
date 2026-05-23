@@ -10,6 +10,7 @@ import {
   INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, SAMPLE_BIOMARKERS, projectScores, statusColor,
 } from "@/lib/mockData";
 import { HealthGauge } from "@/components/HealthGauge";
+import { StatusPill } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
