@@ -137,7 +137,7 @@ function Intake() {
               <Step1
                 draft={draft}
                 setDraft={setDraft}
-                onGoalAdded={() => awardXp(10)}
+                onGoalAdded={() => bumpLocalXp(10)}
               />
             )}
             {step === 1 && <Step2 draft={draft} setDraft={setDraft} />}
