@@ -72,20 +72,25 @@ function Dashboard() {
         </div>
 
         <div className="lg:col-span-5 glass rounded-2xl p-6">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Top 3 healthspan bottlenecks</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">{FRIENDLY_COPY.areasToNurture}</div>
           <div className="space-y-3">
-            {bottlenecks.map((b) => (
-              <div key={b.key} className="flex items-center gap-3 p-3 rounded-xl glass-soft">
-                <AlertTriangle className="h-4 w-4 text-[var(--neon-orange)]" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{b.label}</div>
-                  <div className="text-[11px] text-muted-foreground">{b.drivers.join(" · ")}</div>
+            {bottlenecks.map((b) => {
+              const status = b.score >= 75 ? "optimal" : b.score >= 60 ? "watch" : "priority";
+              return (
+                <div key={b.key} className="flex items-center gap-3 p-3 rounded-xl glass-soft">
+                  <Leaf className="h-4 w-4" style={{ color: "var(--friendly-amber)" }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{b.label}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{b.drivers.join(" · ")}</div>
+                  </div>
+                  <FriendlyStatusBadge status={status} />
+                  <div className="font-mono text-sm" style={{ color: "var(--friendly-amber)" }}>{b.score}</div>
                 </div>
-                <div className="font-mono text-sm neon-text-orange">{b.score}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
+
       </div>
 
       {/* Radar + system cards */}
