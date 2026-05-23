@@ -90,9 +90,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <TwinProvider>
-        <Layout>
-          <Outlet />
-        </Layout>
+        <TwinProgressProvider>
+          <Layout>
+            <Outlet />
+          </Layout>
+          <Toaster position="top-right" />
+        </TwinProgressProvider>
       </TwinProvider>
     </QueryClientProvider>
   );
