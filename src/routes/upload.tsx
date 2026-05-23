@@ -34,18 +34,19 @@ function LabUpload() {
     setFileName(label);
     setProcessing(true);
     setStage(0);
-    const stageMs = 900;
-    [1, 2, 3].forEach((i) => setTimeout(() => setStage(i), i * stageMs));
+    const stageMs = 850;
+    [1, 2, 3, 4].forEach((i) => setTimeout(() => setStage(i), i * stageMs));
     setTimeout(() => {
       setLabsLoaded(true);
       navigate({ to: "/dashboard" });
-    }, stageMs * 3 + 500);
+    }, stageMs * 4 + 400);
   };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
       <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">Lab intake</div>
-      <h1 className="text-4xl font-display font-semibold mt-2 mb-8">Upload your lab report</h1>
+      <h1 className="text-4xl font-display font-semibold mt-2 mb-2">Upload your lab report</h1>
+      <p className="text-sm text-muted-foreground mb-8">We extract markers, normalize them, and build your twin in seconds.</p>
 
       {!processing ? (
         <div className="space-y-6">
