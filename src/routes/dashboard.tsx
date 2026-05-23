@@ -142,10 +142,8 @@ function Dashboard() {
                     <td className="py-3 font-mono">{b.value} <span className="text-muted-foreground text-xs">{b.unit}</span></td>
                     <td className="py-3 text-muted-foreground">{b.optimal}</td>
                     <td className="py-3">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--${c})]`}>
-                        <span className={`h-2 w-2 rounded-full bg-[var(--${c})]`} />
-                        {b.status}
-                      </span>
+                      <StatusPill status={b.status} />
+                      <span className="hidden" data-c={c} />
                     </td>
                     <td className="py-3 text-xs text-muted-foreground">{b.note ?? "—"}</td>
                   </tr>
