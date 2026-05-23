@@ -39,7 +39,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <div className="leading-tight">
               <div className="font-display font-semibold tracking-tight">MediTwin</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Healthspan Mission Control
+                Your healthspan twin
               </div>
             </div>
           </Link>
