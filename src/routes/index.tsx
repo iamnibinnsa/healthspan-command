@@ -84,7 +84,7 @@ function Landing() {
               <div className="relative h-full grid grid-cols-3 grid-rows-3 items-center justify-items-center">
                 <NodeIcon Icon={Brain} color="neon-blue" />
                 <div />
-                <NodeIcon Icon={HeartPulse} color="neon-red" />
+                <NodeIcon Icon={HeartPulse} color="neon-orange" />
                 <NodeIcon Icon={Activity} color="neon-orange" />
                 <div className="text-center">
                   <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Twin</div>

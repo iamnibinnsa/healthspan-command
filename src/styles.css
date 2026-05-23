@@ -197,9 +197,13 @@
     background: currentColor;
     box-shadow: 0 0 8px currentColor;
   }
-  .status-optimal { color: var(--neon-green); }
-  .status-watch   { color: var(--neon-orange); }
-  .status-priority{ color: var(--neon-red); }
+  .status-optimal { color: var(--friendly-mint); }
+  .status-watch   { color: var(--friendly-amber); }
+  .status-priority{ color: var(--friendly-coral); }
+
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
 
   .scanlines {
     background-image: repeating-linear-gradient(
@@ -273,6 +277,17 @@
   50% { transform: translateY(-8px); }
 }
 .float { animation: float-y 6s ease-in-out infinite; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 280ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in, .float, .sweep { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
+}
 
 /* ---------- Print / Clinician Brief ---------- */
 @media print {
