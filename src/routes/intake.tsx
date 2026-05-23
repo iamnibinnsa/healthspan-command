@@ -90,7 +90,7 @@ function Intake() {
   };
   const back = () => setStep(Math.max(0, step - 1));
 
-  const awardXp = (amount: number) => {
+  const bumpLocalXp = (amount: number) => {
     setXp((x) => x + amount);
     setPulseXp(true);
     setTimeout(() => setPulseXp(false), 600);
