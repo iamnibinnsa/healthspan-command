@@ -10,10 +10,10 @@ import {
   INITIAL_DOMAINS, SAMPLE_BIOMARKERS, projectScores, type DomainKey,
 } from "@/lib/mockData";
 import { HealthGauge } from "@/components/HealthGauge";
-import { ScoreBreakdown } from "@/components/ScoreBreakdown";
+import { TwinRecipe } from "@/components/TwinRecipe";
+import { HealthSignalCards } from "@/components/HealthSignalCards";
 import { computeHealthspan } from "@/lib/scoringEngine";
 import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
-import { GentleMetricCard } from "@/components/GentleMetricCard";
 import { TrustNote } from "@/components/TrustNote";
 import { FRIENDLY_COPY } from "@/lib/copy";
 
@@ -368,51 +368,11 @@ function Dashboard() {
         </div>
       </details>
 
-      {/* Helpful signals */}
-      <details className="glass rounded-2xl p-6 group">
-        <summary className="cursor-pointer flex items-center justify-between list-none">
-          <div>
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">
-              {FRIENDLY_COPY.helpfulSignals}
-            </div>
-            <div className="font-display text-lg mt-0.5">
-              Explore the markers behind these insights
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">
-              Markers are signals, not judgments — they just hint at what to support next.
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 transition-transform group-open:rotate-90 text-muted-foreground" />
-        </summary>
-        <div className="mt-5 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {SAMPLE_BIOMARKERS.map((b) => {
-            const tone: "mint" | "amber" | "coral" =
-              b.status === "optimal" ? "mint" : b.status === "watch" ? "amber" : "coral";
-            const friendly =
-              b.status === "optimal" ? "optimal" : b.status === "watch" ? "watch" : "priority";
-            return (
-              <GentleMetricCard
-                key={b.name}
-                label={b.name}
-                value={b.value}
-                unit={b.unit}
-                target={b.optimal}
-                tone={tone}
-                hint={
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <FriendlyStatusBadge status={friendly} />
-                    {b.note && (
-                      <span className="text-[11px] text-muted-foreground">{b.note}</span>
-                    )}
-                  </div>
-                }
-              />
-            );
-          })}
-        </div>
-      </details>
+      {/* Health Signal Cards */}
+      <HealthSignalCards biomarkers={SAMPLE_BIOMARKERS} />
 
-      <ScoreBreakdown breakdown={breakdown} />
+      {/* How MediTwin builds your score */}
+      <TwinRecipe breakdown={breakdown} />
 
       {/* Bottom CTA */}
       <div
