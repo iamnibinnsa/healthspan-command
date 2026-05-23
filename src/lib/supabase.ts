@@ -1,10 +1,4 @@
-import { supabase as typedSupabase } from "@/integrations/supabase/client";
-
-// Untyped client — the `profiles` table is managed outside the generated schema.
-export const supabase = typedSupabase as unknown as ReturnType<typeof createUntyped>;
-function createUntyped() {
-  return typedSupabase as any;
-}
+export { supabase } from "@/integrations/supabase/client";
 
 export type SupabaseProfile = {
   id: string;
