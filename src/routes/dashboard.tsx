@@ -3,16 +3,19 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
 import {
-  Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, AlertTriangle, ArrowRight,
+  Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, Leaf, ArrowRight,
 } from "lucide-react";
 import { useTwin } from "@/lib/twin-context";
 import {
-  INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, SAMPLE_BIOMARKERS, projectScores, statusColor,
+  INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, SAMPLE_BIOMARKERS, projectScores,
 } from "@/lib/mockData";
 import { HealthGauge } from "@/components/HealthGauge";
-import { StatusPill } from "@/components/StatusPill";
 import { ScoreBreakdown } from "@/components/ScoreBreakdown";
 import { computeHealthspan } from "@/lib/scoringEngine";
+import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
+import { GentleMetricCard } from "@/components/GentleMetricCard";
+import { TrustNote } from "@/components/TrustNote";
+import { FRIENDLY_COPY } from "@/lib/copy";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
