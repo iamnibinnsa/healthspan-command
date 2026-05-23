@@ -86,7 +86,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="relative flex-1">{children}</main>
+      <main key={location.pathname} className="relative flex-1 animate-fade-in">{children}</main>
 
       <footer className="relative border-t border-border/50 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-xs text-muted-foreground space-y-2">
