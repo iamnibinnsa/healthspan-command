@@ -36,15 +36,19 @@ function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">
-            Mission Control · {intake.name}
+          <div className="text-xs font-mono uppercase tracking-[0.3em]" style={{ color: "var(--friendly-teal)" }}>
+            Your twin dashboard · {intake.name}
           </div>
-          <h1 className="text-4xl font-display font-semibold mt-1">Healthspan Mission Control</h1>
+          <h1 className="text-4xl font-display font-semibold mt-1">{FRIENDLY_COPY.heroTitle}</h1>
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{FRIENDLY_COPY.heroSubtitle}</p>
         </div>
         <Link to="/simulator" className="px-4 py-2 rounded-lg btn-hero text-xs font-semibold inline-flex items-center gap-2">
-          Open Simulator <ArrowRight className="h-3 w-3" />
+          Try gentle what-ifs <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
+
+      <TrustNote>{FRIENDLY_COPY.signalDisclaimer}</TrustNote>
+
 
       {/* Top row */}
       <div className="grid lg:grid-cols-12 gap-4">
