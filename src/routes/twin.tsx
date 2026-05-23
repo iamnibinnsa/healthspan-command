@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X } from "lucide-react";
+import { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X, ArrowRight } from "lucide-react";
+
 import { INITIAL_DOMAINS, projectScores, statusColor, type DomainKey } from "@/lib/mockData";
 import { useTwin } from "@/lib/twin-context";
 import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
