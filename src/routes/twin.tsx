@@ -36,8 +36,10 @@ function TwinMap() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-      <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">Digital Twin Map</div>
-      <h1 className="text-4xl font-display font-semibold mt-1 mb-8">Your six-system body map</h1>
+      <div className="text-xs font-mono uppercase tracking-[0.3em]" style={{ color: "var(--friendly-teal)" }}>Your body map</div>
+      <h1 className="text-4xl font-display font-semibold mt-1 mb-3">Six gentle systems to explore</h1>
+      <TrustNote className="mb-6 max-w-2xl">{FRIENDLY_COPY.signalDisclaimer}</TrustNote>
+
 
       <div className="grid lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 glass rounded-3xl p-8 relative overflow-hidden">
