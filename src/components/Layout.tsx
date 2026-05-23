@@ -8,11 +8,11 @@ import { supabase } from "@/lib/supabase";
 const NAV = [
   { to: "/intake", label: "Intake" },
   { to: "/upload", label: "Labs" },
-  { to: "/dashboard", label: "Mission Control" },
+  { to: "/dashboard", label: "Insights" },
   { to: "/twin", label: "Digital Twin" },
-  { to: "/simulator", label: "Simulator" },
-  { to: "/plan", label: "90-Day Plan" },
-  { to: "/report", label: "Report" },
+  { to: "/simulator", label: "Try Changes" },
+  { to: "/plan", label: "90-Day Guide" },
+  { to: "/report", label: "Clinician Brief" },
   { to: "/investor", label: "Investor" },
 ] as const;
 
@@ -39,7 +39,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <div className="leading-tight">
               <div className="font-display font-semibold tracking-tight">MediTwin</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Healthspan Mission Control
+                Your healthspan twin
               </div>
             </div>
           </Link>

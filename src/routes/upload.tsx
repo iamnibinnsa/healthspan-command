@@ -9,19 +9,19 @@ export const Route = createFileRoute("/upload")({
 });
 
 const STAGES = [
-  "Extracting biomarkers from PDF…",
-  "Normalizing lab values against reference ranges…",
-  "Modeling six-system digital twin…",
-  "Compiling healthspan telemetry…",
+  "Reading your lab values…",
+  "Matching them to demo reference ranges…",
+  "Building your six-system twin…",
+  "Organizing your first health signals…",
 ];
 
 const TELEMETRY = [
-  "› parser.ocr.engine = lovable/lab-v3",
-  "› markers.detected = 14 / 14",
-  "› reference.frame = NHANES + ADA + AHA",
-  "› twin.systems.built = cognitive, cardio, metabolic, sleep, muscle, inflammation",
-  "› bio_age.delta = computing…",
-  "› projection.engine = directional-estimate v0.4",
+  "› reading markers safely",
+  "› 14 of 14 signals organized",
+  "› reference frame: NHANES + ADA + AHA (demo)",
+  "› twin systems built: cognitive, cardio, metabolic, sleep, muscle, inflammation",
+  "› estimating your age-gap signal…",
+  "› directional estimate engine v0.4",
 ];
 
 type UploadApiResponse = {
@@ -111,8 +111,9 @@ function LabUpload() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
       <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">Lab intake</div>
-      <h1 className="text-4xl font-display font-semibold mt-2 mb-2">Upload your lab report</h1>
-      <p className="text-sm text-muted-foreground mb-8">We extract markers, normalize them, and build your twin in seconds.</p>
+      <h1 className="text-4xl font-display font-semibold mt-2 mb-2">Unlock my lab twin</h1>
+      <p className="text-sm text-muted-foreground mb-2">We turn your lab values into a friendly six-system twin in seconds.</p>
+      <p className="text-xs text-muted-foreground mb-8">No judgment — this is your starting point. You can skip anything.</p>
 
       {!processing ? (
         <div className="space-y-6">
@@ -133,7 +134,7 @@ function LabUpload() {
               <Upload className="h-7 w-7 text-[var(--neon-blue)]" />
             </div>
             <div className="font-display text-xl font-semibold">Drag & drop a PDF</div>
-            <p className="text-sm text-muted-foreground mt-1">or click to browse · we parse and structure biomarkers</p>
+            <p className="text-sm text-muted-foreground mt-1">or click to browse · your twin works with what you choose to share</p>
           </label>
 
           <div className="flex items-center gap-3">
@@ -168,7 +169,7 @@ trailer
               <Sparkles className="h-5 w-5 text-[var(--neon-green)]" />
             </div>
             <div className="text-left flex-1">
-              <div className="font-display text-lg font-semibold">Use Sample Lab Report</div>
+              <div className="font-display text-lg font-semibold">Explore Sample Twin</div>
               <div className="text-xs text-muted-foreground">Alex Morgan · 48 · comprehensive metabolic + lipid panel</div>
             </div>
             <span className="text-xs neon-text-green opacity-0 group-hover:opacity-100 transition">Load →</span>

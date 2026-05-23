@@ -67,7 +67,7 @@ function LoginPage() {
                 MediTwin
               </div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Healthspan Mission Control
+                Your healthspan twin
               </div>
             </div>
           </Link>
