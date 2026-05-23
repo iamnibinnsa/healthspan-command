@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useTwin } from "@/lib/twin-context";
 import {
-  INITIAL_DOMAINS, SAMPLE_BIOMARKERS, projectScores, type DomainKey,
+  INITIAL_DOMAINS, SAMPLE_BIOMARKERS, projectScores, type DomainKey, type Biomarker, type Status,
 } from "@/lib/mockData";
 import { HealthGauge } from "@/components/HealthGauge";
 import { TwinRecipe } from "@/components/TwinRecipe";
@@ -69,10 +69,26 @@ function readinessLabel(score: number) {
 }
 
 function Dashboard() {
-  const { interventions, intake } = useTwin();
+  const { interventions, intake, parsedBiomarkers } = useTwin();
   const projected = projectScores(interventions);
   const breakdown = computeHealthspan(intake, interventions);
   const domains = INITIAL_DOMAINS.map((d) => ({ ...d, score: projected.domains[d.key] }));
+  const biomarkers: Biomarker[] = parsedBiomarkers
+    ? [
+        { name: "HbA1c", value: parsedBiomarkers.hba1c, unit: "%", optimal: "< 5.4", status: band(parsedBiomarkers.hba1c, 5.4, 6) },
+        { name: "Fasting Glucose", value: parsedBiomarkers.fasting_glucose, unit: "mg/dL", optimal: "70-95", status: band(parsedBiomarkers.fasting_glucose, 95, 110) },
+        { name: "ApoB", value: parsedBiomarkers.apob, unit: "mg/dL", optimal: "< 80", status: band(parsedBiomarkers.apob, 80, 100) },
+        { name: "LDL-C", value: parsedBiomarkers.ldl_c, unit: "mg/dL", optimal: "< 100", status: band(parsedBiomarkers.ldl_c, 100, 130) },
+        { name: "HDL-C", value: parsedBiomarkers.hdl_c, unit: "mg/dL", optimal: "> 50", status: reverseBand(parsedBiomarkers.hdl_c, 50, 40) },
+        { name: "Triglycerides", value: parsedBiomarkers.triglycerides, unit: "mg/dL", optimal: "< 100", status: band(parsedBiomarkers.triglycerides, 100, 175) },
+        { name: "hs-CRP", value: parsedBiomarkers.hs_crp, unit: "mg/L", optimal: "< 1.0", status: band(parsedBiomarkers.hs_crp, 1, 3) },
+        { name: "Vitamin D", value: parsedBiomarkers.vitamin_d, unit: "ng/mL", optimal: "40-60", status: reverseBand(parsedBiomarkers.vitamin_d, 40, 25) },
+        { name: "Resting HR", value: parsedBiomarkers.resting_hr, unit: "bpm", optimal: "55-65", status: band(parsedBiomarkers.resting_hr, 65, 75) },
+        { name: "HRV", value: parsedBiomarkers.hrv, unit: "ms", optimal: "> 50", status: reverseBand(parsedBiomarkers.hrv, 50, 35) },
+        { name: "Sleep Duration", value: parsedBiomarkers.sleep_duration, unit: "hr/night", optimal: "7-8.5", status: reverseBand(parsedBiomarkers.sleep_duration, 7, 6) },
+        { name: "VO2 max", value: parsedBiomarkers.vo2_max, unit: "ml/kg/min", optimal: "> 42", status: reverseBand(parsedBiomarkers.vo2_max, 42, 35) },
+      ]
+    : SAMPLE_BIOMARKERS;
 
   const radarData = domains.map((d) => ({ domain: d.short, score: d.score, fullMark: 100 }));
   const sorted = [...domains].sort((a, b) => b.score - a.score);
@@ -369,7 +385,7 @@ function Dashboard() {
       </details>
 
       {/* Health Signal Cards */}
-      <HealthSignalCards biomarkers={SAMPLE_BIOMARKERS} />
+      <HealthSignalCards biomarkers={biomarkers} />
 
       {/* How MediTwin builds your score */}
       <TwinRecipe breakdown={breakdown} />
@@ -404,4 +420,16 @@ function Dashboard() {
       </div>
     </div>
   );
+}
+
+function band(value: number, optimalCutoff: number, watchCutoff: number): Status {
+  if (value < optimalCutoff) return "optimal";
+  if (value < watchCutoff) return "watch";
+  return "priority";
+}
+
+function reverseBand(value: number, optimalFloor: number, watchFloor: number): Status {
+  if (value >= optimalFloor) return "optimal";
+  if (value >= watchFloor) return "watch";
+  return "priority";
 }

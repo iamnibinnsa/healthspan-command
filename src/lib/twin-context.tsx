@@ -10,6 +10,21 @@ import {
 import type { User } from "@supabase/supabase-js";
 import { supabase, type SupabaseProfile } from "./supabase";
 
+export interface ParsedBiomarkers {
+  hba1c: number;
+  fasting_glucose: number;
+  apob: number;
+  ldl_c: number;
+  hdl_c: number;
+  triglycerides: number;
+  hs_crp: number;
+  vitamin_d: number;
+  resting_hr: number;
+  hrv: number;
+  sleep_duration: number;
+  vo2_max: number;
+}
+
 export interface IntakeData {
   name: string;
   age: number;
@@ -73,6 +88,8 @@ interface Ctx {
   setIntake: (d: IntakeData) => void;
   labsLoaded: boolean;
   setLabsLoaded: (b: boolean) => void;
+  parsedBiomarkers: ParsedBiomarkers | null;
+  setParsedBiomarkers: (data: ParsedBiomarkers | null) => void;
   interventions: string[];
   toggleIntervention: (id: string) => void;
   setInterventions: (ids: string[]) => void;
@@ -85,6 +102,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
   const [intake, setIntakeState] = useState<IntakeData>(defaultIntake);
   const [labsLoaded, setLabsLoaded] = useState(false);
+  const [parsedBiomarkers, setParsedBiomarkers] = useState<ParsedBiomarkers | null>(null);
   const [interventions, setInterventions] = useState<string[]>([]);
 
   // Track the last userId whose profile was loaded so we don't re-fetch
@@ -105,6 +123,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
           // Signed out — reset to defaults
           setIntakeState(defaultIntake);
           setLabsLoaded(false);
+          setParsedBiomarkers(null);
           setInterventions([]);
           loadedForRef.current = null;
         }
@@ -155,6 +174,8 @@ export function TwinProvider({ children }: { children: ReactNode }) {
       setIntake,
       labsLoaded,
       setLabsLoaded,
+      parsedBiomarkers,
+      setParsedBiomarkers,
       interventions,
       setInterventions,
       toggleIntervention: (id) =>
@@ -163,7 +184,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
         ),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, authLoading, intake, labsLoaded, interventions]
+    [user, authLoading, intake, labsLoaded, parsedBiomarkers, interventions]
   );
 
   return <TwinCtx.Provider value={value}>{children}</TwinCtx.Provider>;
