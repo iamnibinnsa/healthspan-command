@@ -62,6 +62,8 @@ export function Layout({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
+          <div className="flex items-center gap-2">
+            <TwinProgressBadge />
           {user ? (
             <button
               onClick={handleSignOut}
