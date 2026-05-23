@@ -346,6 +346,3 @@ function StatusLabel({ status }: { status: string }) {
   const s = map[status] || map.watch;
   return <span className={`text-[11px] uppercase tracking-wider ${s.tone}`}>{s.label}</span>;
 }
-
-// Reference to keep Download icon import meaningful in future variants
-void Download;
