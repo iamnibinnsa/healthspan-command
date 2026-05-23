@@ -97,13 +97,12 @@ function TwinMap() {
                 </button>
               </div>
               <div className="flex items-baseline gap-3">
-                <div className={`font-display text-5xl text-[var(--${statusColor(activeNode.status)})]`}>
+                <div className="font-display text-5xl" style={{ color: "var(--friendly-teal)" }}>
                   {activeNode.score}
                 </div>
-                <div className={`text-xs uppercase tracking-wider text-[var(--${statusColor(activeNode.status)})]`}>
-                  {activeNode.status}
-                </div>
+                <FriendlyStatusBadge status={activeNode.status} />
               </div>
+
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Drivers</div>
                 <ul className="space-y-1.5 text-sm">
