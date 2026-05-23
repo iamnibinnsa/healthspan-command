@@ -79,6 +79,14 @@
   --neon-red: oklch(0.7 0.22 25);
   --glass: oklch(0.25 0.04 250 / 45%);
 
+  /* Warmer, friendlier palette for gamified consumer surfaces */
+  --friendly-teal: oklch(0.82 0.13 190);
+  --friendly-mint: oklch(0.86 0.14 165);
+  --friendly-sky:  oklch(0.82 0.12 225);
+  --friendly-amber: oklch(0.84 0.14 80);
+  --friendly-coral: oklch(0.78 0.14 30);
+  --friendly-violet: oklch(0.78 0.13 295);
+
   --chart-1: oklch(0.78 0.18 220);
   --chart-2: oklch(0.82 0.2 160);
   --chart-3: oklch(0.78 0.18 55);
