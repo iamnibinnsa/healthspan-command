@@ -125,42 +125,43 @@ export interface Intervention {
   category: "Exercise" | "Nutrition" | "Sleep" | "Medical";
 }
 
+/**
+ * Intervention effects on the six domain scores.
+ * Values are interpretable hackathon prototype deltas (points, 0-100 scale)
+ * derived from public directional evidence — NOT clinically validated.
+ */
 export const INTERVENTIONS: Intervention[] = [
   {
     id: "zone2",
     label: "Zone 2 cardio 150 min/week",
     description: "Mitochondrial efficiency, glucose disposal, VO2.",
     category: "Exercise",
-    effects: { metabolic: 7, cardio: 6, cognition: 3, muscle: 2 },
-    healthspan: 5,
-    bioAge: 1.0,
+    effects: { metabolic: 8, cardio: 5, cognition: 4, sleep: 3 },
+    healthspan: 0, bioAge: 0,
   },
   {
     id: "strength",
     label: "Strength training 3×/week",
     description: "Muscle reserve, insulin sensitivity, bone density.",
     category: "Exercise",
-    effects: { muscle: 9, metabolic: 4, cognition: 2 },
-    healthspan: 4,
-    bioAge: 0.8,
+    effects: { muscle: 10, metabolic: 4, cognition: 3 },
+    healthspan: 0, bioAge: 0,
   },
   {
     id: "sleep45",
     label: "Sleep +45 min / night",
     description: "Recovery, glymphatic clearance, hormonal balance.",
     category: "Sleep",
-    effects: { sleep: 12, cognition: 5, inflammation: 4, metabolic: 3 },
-    healthspan: 6,
-    bioAge: 1.2,
+    effects: { sleep: 10, inflammation: 5, cognition: 5, metabolic: 3 },
+    healthspan: 0, bioAge: 0,
   },
   {
     id: "fiber",
     label: "Fiber 30 g/day",
     description: "Microbiome, ApoB modulation, glucose control.",
     category: "Nutrition",
-    effects: { metabolic: 5, cardio: 4, inflammation: 3 },
-    healthspan: 3,
-    bioAge: 0.6,
+    effects: { metabolic: 5, cardio: 3, inflammation: 2 },
+    healthspan: 0, bioAge: 0,
   },
   {
     id: "protein",
@@ -168,17 +169,15 @@ export const INTERVENTIONS: Intervention[] = [
     description: "Lean mass preservation, satiety, recovery.",
     category: "Nutrition",
     effects: { muscle: 6, metabolic: 2 },
-    healthspan: 2,
-    bioAge: 0.4,
+    healthspan: 0, bioAge: 0,
   },
   {
     id: "alcohol",
     label: "Reduce alcohol",
     description: "Sleep quality, liver, inflammation.",
     category: "Nutrition",
-    effects: { sleep: 4, inflammation: 4, cognition: 2 },
-    healthspan: 3,
-    bioAge: 0.6,
+    effects: { sleep: 4, inflammation: 4, metabolic: 2 },
+    healthspan: 0, bioAge: 0,
   },
   {
     id: "vitd",
@@ -186,45 +185,62 @@ export const INTERVENTIONS: Intervention[] = [
     description: "Immune modulation, bone, mood.",
     category: "Medical",
     effects: { inflammation: 5, muscle: 2 },
-    healthspan: 2,
-    bioAge: 0.4,
+    healthspan: 0, bioAge: 0,
   },
   {
     id: "apob",
     label: "Discuss ApoB / lipid strategy with physician",
-    description: "Address atherogenic particle burden directly.",
+    description: "Physician-guided opportunity to address atherogenic particle burden.",
     category: "Medical",
-    effects: { cardio: 10, cognition: 3 },
-    healthspan: 5,
-    bioAge: 1.2,
+    effects: { cardio: 8 },
+    healthspan: 0, bioAge: 0,
   },
 ];
 
 export const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
 
+// Domain weights for overall Healthspan Score (must mirror scoringEngine.ts).
+const DOMAIN_WEIGHTS_LOCAL: Record<DomainKey, number> = {
+  metabolic: 0.20, cardio: 0.20, inflammation: 0.15,
+  muscle: 0.15, cognition: 0.15, sleep: 0.15,
+};
+
+/**
+ * Projects domain scores, overall Healthspan Score, and Biological Age Gap
+ * given a set of active intervention IDs.
+ *
+ *   newGap = initialGap - ((newScore - oldScore) * 0.18)
+ *
+ * All values are projected directional estimates, not clinical predictions.
+ */
 export function projectScores(activeIds: string[]) {
-  const domainMap: Record<DomainKey, number> = {
-    metabolic: 58,
-    cardio: 55,
-    inflammation: 52,
-    muscle: 63,
-    cognition: 67,
-    sleep: 49,
+  const baseline: Record<DomainKey, number> = {
+    metabolic: 58, cardio: 55, inflammation: 52,
+    muscle: 63, cognition: 67, sleep: 49,
   };
-  let health = INITIAL_HEALTHSPAN;
-  let gap = INITIAL_BIO_AGE_GAP;
+  const projected: Record<DomainKey, number> = { ...baseline };
+
   for (const id of activeIds) {
     const ix = INTERVENTIONS.find((i) => i.id === id);
     if (!ix) continue;
     for (const [k, v] of Object.entries(ix.effects)) {
-      domainMap[k as DomainKey] = clamp(domainMap[k as DomainKey] + (v as number));
+      projected[k as DomainKey] = clamp(projected[k as DomainKey] + (v as number));
     }
-    health = clamp(health + ix.healthspan);
-    gap = Math.max(1.8, gap - ix.bioAge);
   }
-  return { domains: domainMap, healthspan: Math.round(health), bioAgeGap: +gap.toFixed(1) };
+
+  const weightedAvg = (s: Record<DomainKey, number>) =>
+    (Object.keys(s) as DomainKey[]).reduce((sum, k) => sum + s[k] * DOMAIN_WEIGHTS_LOCAL[k], 0);
+
+  const oldScore = weightedAvg(baseline);
+  const newScore = weightedAvg(projected);
+  const gap = Math.max(0, INITIAL_BIO_AGE_GAP - (newScore - oldScore) * 0.18);
+
+  return {
+    domains: projected,
+    baselineDomains: baseline,
+    healthspan: Math.round(newScore),
+    baselineHealthspan: Math.round(oldScore),
+    bioAgeGap: +gap.toFixed(1),
+  };
 }
 
-export function statusColor(s: Status) {
-  return s === "optimal" ? "neon-green" : s === "watch" ? "neon-orange" : "neon-red";
-}
