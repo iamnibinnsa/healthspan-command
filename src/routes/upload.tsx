@@ -85,7 +85,7 @@ function LabUpload() {
       setParsedBiomarkers(data.parsed.biomarkers);
 
       if (user?.id) {
-        const { error: dbError } = await supabase.from("lab_reports").insert({
+        const { error: dbError } = await (supabase as any).from("lab_reports").insert({
           user_id: user.id,
           report_id: data.report_id,
           file_name: data.file_name,
