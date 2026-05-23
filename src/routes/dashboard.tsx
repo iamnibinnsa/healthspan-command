@@ -23,6 +23,7 @@ const ICONS = { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon } as const;
 function Dashboard() {
   const { interventions, intake } = useTwin();
   const projected = projectScores(interventions);
+  const breakdown = computeHealthspan(intake, interventions);
   const domains = INITIAL_DOMAINS.map((d) => ({ ...d, score: projected.domains[d.key] }));
 
   const radarData = domains.map((d) => ({ domain: d.short, score: d.score, fullMark: 100 }));
