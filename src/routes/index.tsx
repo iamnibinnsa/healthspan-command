@@ -16,15 +16,17 @@ function Landing() {
               <Sparkles className="h-3 w-3" /> Caltech Longevity Hackathon · MVP
             </span>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-semibold leading-[1.02]">
-              Meet your{" "}
+              Your body has{" "}
               <span className="bg-gradient-to-r from-[var(--neon-blue)] via-[var(--neon-green)] to-[var(--neon-orange)] bg-clip-text text-transparent">
-                Digital Medicine Twin
-              </span>{" "}
-              for Longevity
+                telemetry
+              </span>
+              .<br />
+              MediTwin turns it into a{" "}
+              <span className="neon-text-green">mission plan</span>.
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              Upload labs. Map healthspan risks across six body systems. Simulate interventions in
-              real time. Generate a 90-day plan and a brief you can hand to your physician.
+              Most tools measure you. MediTwin models you. Upload labs, map risks across six body
+              systems, simulate interventions, and generate your 90-day plan.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link to="/intake" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl btn-hero text-sm font-semibold">
@@ -38,9 +40,9 @@ function Landing() {
               </Link>
             </div>
             <div className="flex items-center gap-6 pt-4 text-xs text-muted-foreground">
-              <Stat label="Body systems mapped" value="6" />
+              <Stat label="Body systems modeled" value="6" />
               <Stat label="Biomarkers tracked" value="12+" />
-              <Stat label="Demo plan" value="90 days" />
+              <Stat label="Plan horizon" value="90 days" />
             </div>
           </div>
 
