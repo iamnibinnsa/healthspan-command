@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import { INTERVENTIONS, projectScores, INITIAL_DOMAINS } from "@/lib/mockData";
 import {
   Sparkles, Loader2, FileText, Stethoscope, Calendar, ShieldCheck,
