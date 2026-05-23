@@ -111,8 +111,9 @@ function LabUpload() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
       <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">Lab intake</div>
-      <h1 className="text-4xl font-display font-semibold mt-2 mb-2">Upload your lab report</h1>
-      <p className="text-sm text-muted-foreground mb-8">We extract markers, normalize them, and build your twin in seconds.</p>
+      <h1 className="text-4xl font-display font-semibold mt-2 mb-2">Unlock my lab twin</h1>
+      <p className="text-sm text-muted-foreground mb-2">We turn your lab values into a friendly six-system twin in seconds.</p>
+      <p className="text-xs text-muted-foreground mb-8">No judgment — this is your starting point. You can skip anything.</p>
 
       {!processing ? (
         <div className="space-y-6">
