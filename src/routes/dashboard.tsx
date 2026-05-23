@@ -114,6 +114,8 @@ function Dashboard() {
         </p>
       </div>
 
+      <ProgressMiniCard />
+
       {/* Twin Summary hero */}
       <div
         className="glass rounded-3xl p-6 sm:p-8 relative overflow-hidden"
