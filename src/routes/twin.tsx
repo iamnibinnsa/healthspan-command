@@ -3,6 +3,9 @@ import { useState } from "react";
 import { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X } from "lucide-react";
 import { INITIAL_DOMAINS, projectScores, statusColor, type DomainKey } from "@/lib/mockData";
 import { useTwin } from "@/lib/twin-context";
+import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
+import { TrustNote } from "@/components/TrustNote";
+import { FRIENDLY_COPY } from "@/lib/copy";
 
 export const Route = createFileRoute("/twin")({
   component: TwinMap,
