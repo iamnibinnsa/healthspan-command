@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Sparkles, Brain, HeartPulse, Activity, Moon, Dumbbell, Flame, ShieldCheck, Atom } from "lucide-react";
+import { ArrowRight, Brain, HeartPulse, Activity, Moon, Dumbbell, Flame, Atom } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -12,9 +12,6 @@ function Landing() {
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-28">
         <div className="grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 space-y-7">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-soft text-[11px] uppercase tracking-[0.2em] text-[var(--neon-blue)]">
-              <Sparkles className="h-3 w-3" /> Caltech Longevity Hackathon · MVP
-            </span>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-semibold leading-[1.02]">
               Your body has{" "}
               <span className="bg-gradient-to-r from-[var(--neon-blue)] via-[var(--neon-green)] to-[var(--neon-orange)] bg-clip-text text-transparent">
@@ -78,68 +75,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* Problem */}
-      <Section title="The Problem" eyebrow="01 / Why">
-        <div className="grid md:grid-cols-3 gap-4">
-          {[
-            { t: "Healthspan is opaque", d: "People live longer but spend their last decade in chronic illness. There is no operating system for healthspan." },
-            { t: "Labs feel like noise", d: "Patients get PDFs with red flags but no integrated picture across metabolic, cardiovascular, cognitive, and recovery systems." },
-            { t: "Interventions feel guess-based", d: "There is no way to simulate what changing sleep, lipids, or training would actually do to your trajectory." },
-          ].map((x) => (
-            <div key={x.t} className="glass rounded-2xl p-6">
-              <div className="text-lg font-display font-semibold mb-2">{x.t}</div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{x.d}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Solution */}
-      <Section title="The Solution" eyebrow="02 / What">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="glass rounded-2xl p-8 lg:col-span-1">
-            <Atom className="h-8 w-8 text-[var(--neon-green)] mb-4" />
-            <h3 className="text-2xl font-display font-semibold mb-2">A digital medicine twin</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              MediTwin ingests labs, intake, and wearable signals and builds a six-system model of
-              your healthspan. Each system has a score, drivers, and physician-discussion items.
-            </p>
-          </div>
-          <div className="glass rounded-2xl p-8">
-            <ShieldCheck className="h-8 w-8 text-[var(--neon-blue)] mb-4" />
-            <h3 className="text-2xl font-display font-semibold mb-2">A what-if simulator</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Toggle Zone 2, sleep, fiber, ApoB strategy — and watch projected healthspan and
-              biological age update live. Then export a personalized 90-day plan and clinician brief.
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      {/* How */}
-      <Section title="How It Works" eyebrow="03 / Flow">
-        <div className="grid md:grid-cols-4 gap-4">
-          {["Healthspan intake", "Upload lab PDF", "Build digital twin", "Simulate & plan"].map((s, i) => (
-            <div key={s} className="glass rounded-2xl p-6">
-              <div className="text-xs font-mono text-[var(--neon-blue)]">STEP {String(i + 1).padStart(2, "0")}</div>
-              <div className="mt-2 font-display text-lg font-semibold">{s}</div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Why now */}
-      <Section title="Why Now" eyebrow="04 / Timing">
-        <div className="glass rounded-2xl p-8">
-          <p className="text-base text-muted-foreground leading-relaxed max-w-4xl">
-            The convergence of consumer lab access, wearables generating continuous physiology
-            data, foundation models capable of structured reasoning over biomarkers, and a cultural
-            shift toward longevity makes the digital medicine twin inevitable. The question is
-            who builds the trusted operating system first.
-          </p>
-        </div>
-      </Section>
-
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
         <div className="glass rounded-3xl p-10 text-center neon-border-blue">
           <h3 className="text-3xl font-display font-semibold">Ready to meet your twin?</h3>
@@ -173,17 +108,5 @@ function NodeIcon({ Icon, color }: { Icon: React.ComponentType<{ className?: str
       <Icon className={`h-6 w-6 text-[var(--${color})]`} />
       <span className={`absolute inset-0 rounded-2xl neon-border-${color === "neon-red" ? "red" : color.split("-")[1]} opacity-50`} />
     </div>
-  );
-}
-
-function Section({ title, eyebrow, children }: { title: string; eyebrow: string; children: React.ReactNode }) {
-  return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-      <div className="mb-8">
-        <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">{eyebrow}</div>
-        <h2 className="text-3xl sm:text-4xl font-display font-semibold mt-2">{title}</h2>
-      </div>
-      {children}
-    </section>
   );
 }
