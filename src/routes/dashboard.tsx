@@ -131,10 +131,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Biomarkers */}
-      <div className="glass rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Biomarker flags</div>
       {/* Helpful signals (was: Biomarker flags table) */}
       <div className="glass rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
