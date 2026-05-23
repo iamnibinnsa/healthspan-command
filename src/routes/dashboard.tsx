@@ -11,6 +11,8 @@ import {
 } from "@/lib/mockData";
 import { HealthGauge } from "@/components/HealthGauge";
 import { StatusPill } from "@/components/StatusPill";
+import { ScoreBreakdown } from "@/components/ScoreBreakdown";
+import { computeHealthspan } from "@/lib/scoringEngine";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -21,6 +23,7 @@ const ICONS = { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon } as const;
 function Dashboard() {
   const { interventions, intake } = useTwin();
   const projected = projectScores(interventions);
+  const breakdown = computeHealthspan(intake, interventions);
   const domains = INITIAL_DOMAINS.map((d) => ({ ...d, score: projected.domains[d.key] }));
 
   const radarData = domains.map((d) => ({ domain: d.short, score: d.score, fullMark: 100 }));
@@ -153,6 +156,10 @@ function Dashboard() {
           </table>
         </div>
       </div>
+
+      <ScoreBreakdown breakdown={breakdown} />
+
+
 
       <div className="flex flex-wrap gap-3 justify-end">
         <Link to="/twin" className="px-5 py-2.5 rounded-lg glass text-sm font-semibold">Open Digital Twin Map</Link>
