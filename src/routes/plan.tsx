@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTwin } from "@/lib/twin-context";
 import { INTERVENTIONS, projectScores, INITIAL_DOMAINS } from "@/lib/mockData";
 import { StatusPill } from "@/components/StatusPill";
