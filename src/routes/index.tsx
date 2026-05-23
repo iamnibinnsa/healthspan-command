@@ -29,15 +29,14 @@ function Landing() {
             </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-semibold leading-[1.02]">
-              {FRIENDLY_COPY.heroTitle.split("future-health twin")[0]}
+              Ready to meet your{" "}
               <span className="bg-gradient-to-r from-[var(--friendly-teal)] via-[var(--friendly-mint)] to-[var(--friendly-sky)] bg-clip-text text-transparent">
                 future-health twin
               </span>
-              .
+              ?
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              {FRIENDLY_COPY.heroSubtitle} Upload labs, explore six body systems,
-              try gentle what-if changes, and unlock your 90-day quest plan — at your own pace.
+              {FRIENDLY_COPY.heroSubtitle}
             </p>
             <div className="flex flex-wrap gap-3 pt-2 items-center">
               <Link to="/intake">
@@ -53,14 +52,19 @@ function Landing() {
               </Link>
             </div>
 
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground/80">
+              <Sparkles className="h-3 w-3 text-[var(--friendly-mint)]" />
+              Step 1 of 4: Build your twin profile
+            </div>
+
             <TrustNote className="max-w-xl">
-              {FRIENDLY_COPY.signalDisclaimer}
+              Private by design for this demo. Educational only — not a diagnosis or prescription.
             </TrustNote>
 
             <div className="flex items-center gap-6 pt-2 text-xs text-muted-foreground">
-              <Stat label="Body systems mapped" value="6" />
-              <Stat label="Helpful signals tracked" value="12+" />
-              <Stat label="Quest horizon" value="90 days" />
+              <Stat label="6 body systems explored" value="6" />
+              <Stat label="12+ health signals organized" value="12+" />
+              <Stat label="90-day care plan" value="90 days" />
             </div>
           </div>
 
@@ -124,26 +128,6 @@ function Landing() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
-        <div
-          className="rounded-3xl p-10 text-center glass-soft"
-          style={{
-            borderColor: "color-mix(in oklab, var(--friendly-teal) 35%, transparent)",
-            boxShadow: "0 20px 60px -30px color-mix(in oklab, var(--friendly-teal) 60%, transparent)",
-          }}
-        >
-          <h3 className="text-3xl font-display font-semibold">Ready to meet your twin?</h3>
-          <p className="text-sm text-muted-foreground mt-2">{FRIENDLY_COPY.questIntro}</p>
-          <div className="mt-6 flex justify-center gap-3 flex-wrap">
-            <Link to="/intake">
-              <GamifiedCTA tone="teal" xp={10}>{FRIENDLY_COPY.ctaStart}</GamifiedCTA>
-            </Link>
-            <Link to="/upload" className="px-5 py-2.5 rounded-xl glass-soft text-sm font-semibold">
-              {FRIENDLY_COPY.ctaSampleLab}
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
