@@ -134,7 +134,7 @@ function LabUpload() {
               <Upload className="h-7 w-7 text-[var(--neon-blue)]" />
             </div>
             <div className="font-display text-xl font-semibold">Drag & drop a PDF</div>
-            <p className="text-sm text-muted-foreground mt-1">or click to browse · we parse and structure biomarkers</p>
+            <p className="text-sm text-muted-foreground mt-1">or click to browse · your twin works with what you choose to share</p>
           </label>
 
           <div className="flex items-center gap-3">
