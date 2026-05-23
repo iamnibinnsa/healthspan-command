@@ -8,6 +8,7 @@ import {
   FileText, Stethoscope, Calendar, ShieldCheck, Activity,
   Clock, Target, ListChecks, ChevronRight
 } from "lucide-react";
+import { FRIENDLY_COPY } from "@/lib/copy";
 
 export const Route = createFileRoute("/plan")({
   component: Plan,
