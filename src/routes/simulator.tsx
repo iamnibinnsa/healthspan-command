@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import {
   INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, projectScores, type DomainKey,
 } from "@/lib/mockData";
@@ -145,9 +146,13 @@ function Simulator() {
     return ids;
   }, [sleepMin, wakeTime, zone2, strengthDays, fiberG, proteinMeal, discussApoB, discussVitD]);
 
+  const { awardXp, awardBadge } = useTwinProgress();
   useEffect(() => {
     setInterventions(activeIds);
-  }, [activeIds, setInterventions]);
+    activeIds.forEach((id) => awardXp(`sim.intervention.${id}`, 8, `Trying: ${id}`));
+    if (activeIds.includes("sleep45") || activeIds.includes("alcohol")) awardBadge("recovery-builder");
+    if (activeIds.includes("apob")) awardBadge("heart-helper");
+  }, [activeIds, setInterventions, awardXp, awardBadge]);
 
   const proj = projectScores(activeIds);
   const healthDelta = proj.healthspan - proj.baselineHealthspan;

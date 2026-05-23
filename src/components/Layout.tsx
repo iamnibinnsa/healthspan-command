@@ -2,6 +2,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Activity, LogIn, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import { TwinProgressBadge } from "@/components/TwinProgress";
 import { useTwin } from "@/lib/twin-context";
 import { supabase } from "@/lib/supabase";
 
@@ -61,6 +62,8 @@ export function Layout({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
+          <div className="flex items-center gap-2">
+            <TwinProgressBadge />
           {user ? (
             <button
               onClick={handleSignOut}
@@ -78,6 +81,7 @@ export function Layout({ children }: { children: ReactNode }) {
               Sign in
             </Link>
           )}
+          </div>
         </div>
       </header>
 

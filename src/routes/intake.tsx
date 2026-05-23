@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import {
   ArrowRight,
   ArrowLeft,
@@ -71,6 +72,7 @@ const INSIGHTS = [
 
 function Intake() {
   const { intake, setIntake } = useTwin();
+  const { awardXp, awardBadge } = useTwinProgress();
   const [step, setStep] = useState(0);
   const [xp, setXp] = useState(0);
   const [pulseXp, setPulseXp] = useState(false);
@@ -81,12 +83,14 @@ function Intake() {
     if (step < 3) setStep(step + 1);
     else {
       setIntake(draft);
+      awardXp("intake.complete", 10, "Intake completed");
+      awardBadge("twin-builder");
       navigate({ to: "/upload" });
     }
   };
   const back = () => setStep(Math.max(0, step - 1));
 
-  const awardXp = (amount: number) => {
+  const bumpLocalXp = (amount: number) => {
     setXp((x) => x + amount);
     setPulseXp(true);
     setTimeout(() => setPulseXp(false), 600);
@@ -133,7 +137,7 @@ function Intake() {
               <Step1
                 draft={draft}
                 setDraft={setDraft}
-                onGoalAdded={() => awardXp(10)}
+                onGoalAdded={() => bumpLocalXp(10)}
               />
             )}
             {step === 1 && <Step2 draft={draft} setDraft={setDraft} />}

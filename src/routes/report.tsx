@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import { INITIAL_DOMAINS, INTERVENTIONS, SAMPLE_BIOMARKERS, projectScores } from "@/lib/mockData";
 import { FileText, Copy, ArrowLeft, Printer } from "lucide-react";
 
@@ -31,6 +32,11 @@ const STATUS_NOTE_MAP: Record<string, string> = {
 
 function Report() {
   const { intake, interventions } = useTwin();
+  const { awardXp, awardBadge } = useTwinProgress();
+  useEffect(() => {
+    awardXp("report.open", 10, "Clinician brief opened");
+    awardBadge("doctor-ready");
+  }, [awardXp, awardBadge]);
   const proj = projectScores(interventions);
   const bottlenecks = [...INITIAL_DOMAINS]
     .map((d) => ({ ...d, score: proj.domains[d.key] }))

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import { INTERVENTIONS, projectScores, INITIAL_DOMAINS } from "@/lib/mockData";
 import {
   Sparkles, Loader2, FileText, Stethoscope, Calendar, ShieldCheck,
@@ -256,13 +257,16 @@ function Plan() {
 
   const plan = useMemo(() => buildPlan(interventions), [interventions, seed]);
 
+  const { awardXp, awardBadge } = useTwinProgress();
   const handleGenerate = useCallback(() => {
     setGenerating(true);
     setTimeout(() => {
       setGenerating(false);
       setGenerated(true);
+      awardXp("plan.generate", 30, "90-day guide generated");
+      awardBadge("momentum-maker");
     }, 1800);
-  }, []);
+  }, [awardXp, awardBadge]);
 
   const top3Domains = useMemo(() => {
     const proj = projectScores(interventions);

@@ -4,6 +4,7 @@ import { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X, ArrowRight, Spar
 
 import { INITIAL_DOMAINS, projectScores, type DomainKey } from "@/lib/mockData";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
 import { TrustNote } from "@/components/TrustNote";
 import { FRIENDLY_COPY } from "@/lib/copy";
@@ -80,6 +81,12 @@ function TwinMap() {
     return { ...d, score: s, status };
   });
   const [active, setActive] = useState<DomainKey | null>(null);
+  const { awardXp, awardBadge } = useTwinProgress();
+  const handleSelect = (key: DomainKey) => {
+    setActive(key);
+    awardXp(`twin.system.${key}`, 5, `Explored ${key}`);
+    awardBadge("system-mapper");
+  };
   const activeNode = domains.find((d) => d.key === active) ?? null;
   const activeCopy = active ? SYSTEM_COPY[active] : null;
 
@@ -126,7 +133,7 @@ function TwinMap() {
               return (
                 <button
                   key={d.key}
-                  onClick={() => setActive(d.key)}
+                  onClick={() => handleSelect(d.key)}
                   style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                   className="absolute -translate-x-1/2 -translate-y-1/2 group transition-transform duration-300 ease-out hover:scale-105"
                 >

@@ -10,7 +10,9 @@ import {
 
 import appCss from "../styles.css?url";
 import { TwinProvider } from "@/lib/twin-context";
+import { TwinProgressProvider } from "@/lib/twin-progress";
 import { Layout } from "@/components/Layout";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -88,9 +90,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <TwinProvider>
-        <Layout>
-          <Outlet />
-        </Layout>
+        <TwinProgressProvider>
+          <Layout>
+            <Outlet />
+          </Layout>
+          <Toaster position="top-right" />
+        </TwinProgressProvider>
       </TwinProvider>
     </QueryClientProvider>
   );
