@@ -1,9 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseKey =
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string) ||
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Untyped client — the `profiles` table is managed outside the generated schema.
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type SupabaseProfile = {
   id: string;
