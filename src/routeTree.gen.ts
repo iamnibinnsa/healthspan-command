@@ -10,7 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as TwinRouteImport } from './routes/twin'
+import { Route as SimulatorRouteImport } from './routes/simulator'
+import { Route as ReportRouteImport } from './routes/report'
+import { Route as PlanRouteImport } from './routes/plan'
+import { Route as InvestorRouteImport } from './routes/investor'
 import { Route as IntakeRouteImport } from './routes/intake'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 
 const UploadRoute = UploadRouteImport.update({
@@ -18,9 +24,39 @@ const UploadRoute = UploadRouteImport.update({
   path: '/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TwinRoute = TwinRouteImport.update({
+  id: '/twin',
+  path: '/twin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SimulatorRoute = SimulatorRouteImport.update({
+  id: '/simulator',
+  path: '/simulator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportRoute = ReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanRoute = PlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvestorRoute = InvestorRouteImport.update({
+  id: '/investor',
+  path: '/investor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IntakeRoute = IntakeRouteImport.update({
   id: '/intake',
   path: '/intake',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,31 +67,83 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
+  '/investor': typeof InvestorRoute
+  '/plan': typeof PlanRoute
+  '/report': typeof ReportRoute
+  '/simulator': typeof SimulatorRoute
+  '/twin': typeof TwinRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
+  '/investor': typeof InvestorRoute
+  '/plan': typeof PlanRoute
+  '/report': typeof ReportRoute
+  '/simulator': typeof SimulatorRoute
+  '/twin': typeof TwinRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
+  '/investor': typeof InvestorRoute
+  '/plan': typeof PlanRoute
+  '/report': typeof ReportRoute
+  '/simulator': typeof SimulatorRoute
+  '/twin': typeof TwinRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/intake' | '/upload'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/intake'
+    | '/investor'
+    | '/plan'
+    | '/report'
+    | '/simulator'
+    | '/twin'
+    | '/upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/intake' | '/upload'
-  id: '__root__' | '/' | '/intake' | '/upload'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/intake'
+    | '/investor'
+    | '/plan'
+    | '/report'
+    | '/simulator'
+    | '/twin'
+    | '/upload'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/intake'
+    | '/investor'
+    | '/plan'
+    | '/report'
+    | '/simulator'
+    | '/twin'
+    | '/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   IntakeRoute: typeof IntakeRoute
+  InvestorRoute: typeof InvestorRoute
+  PlanRoute: typeof PlanRoute
+  ReportRoute: typeof ReportRoute
+  SimulatorRoute: typeof SimulatorRoute
+  TwinRoute: typeof TwinRoute
   UploadRoute: typeof UploadRoute
 }
 
@@ -68,11 +156,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/twin': {
+      id: '/twin'
+      path: '/twin'
+      fullPath: '/twin'
+      preLoaderRoute: typeof TwinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/simulator': {
+      id: '/simulator'
+      path: '/simulator'
+      fullPath: '/simulator'
+      preLoaderRoute: typeof SimulatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report': {
+      id: '/report'
+      path: '/report'
+      fullPath: '/report'
+      preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plan': {
+      id: '/plan'
+      path: '/plan'
+      fullPath: '/plan'
+      preLoaderRoute: typeof PlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/investor': {
+      id: '/investor'
+      path: '/investor'
+      fullPath: '/investor'
+      preLoaderRoute: typeof InvestorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/intake': {
       id: '/intake'
       path: '/intake'
       fullPath: '/intake'
       preLoaderRoute: typeof IntakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -87,7 +217,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   IntakeRoute: IntakeRoute,
+  InvestorRoute: InvestorRoute,
+  PlanRoute: PlanRoute,
+  ReportRoute: ReportRoute,
+  SimulatorRoute: SimulatorRoute,
+  TwinRoute: TwinRoute,
   UploadRoute: UploadRoute,
 }
 export const routeTree = rootRouteImport

@@ -25,8 +25,8 @@ function TwinMap() {
   const proj = projectScores(interventions);
   const domains = INITIAL_DOMAINS.map((d) => {
     const s = proj.domains[d.key];
-    const status = s >= 75 ? "optimal" : s >= 60 ? "watch" : "priority";
-    return { ...d, score: s, status: status as const };
+    const status: "optimal" | "watch" | "priority" = s >= 75 ? "optimal" : s >= 60 ? "watch" : "priority";
+    return { ...d, score: s, status };
   });
   const [active, setActive] = useState<DomainKey | null>(null);
   const activeNode = domains.find((d) => d.key === active) ?? null;
