@@ -119,7 +119,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
     if (!user || loadedForRef.current === user.id) return;
 
     const load = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("profiles")
         .select("*")
         .eq("id", user.id)
@@ -139,10 +139,10 @@ export function TwinProvider({ children }: { children: ReactNode }) {
     setIntakeState(d);
     if (!user) return;
     // Fire-and-forget UPSERT (no await — UI stays snappy)
-    supabase
+    (supabase as any)
       .from("profiles")
       .upsert({ id: user.id, ...intakeToProfile(d) })
-      .then(({ error }) => {
+      .then(({ error }: { error: { message: string } | null }) => {
         if (error) console.error("Profile save error:", error.message);
       });
   };
