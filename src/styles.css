@@ -274,6 +274,17 @@
 }
 .float { animation: float-y 6s ease-in-out infinite; }
 
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 280ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in, .float, .sweep { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
+}
+
 /* ---------- Print / Clinician Brief ---------- */
 @media print {
   @page { margin: 18mm 16mm; size: A4; }
