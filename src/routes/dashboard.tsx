@@ -135,41 +135,42 @@ function Dashboard() {
       <div className="glass rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="text-xs uppercase tracking-wider text-muted-foreground">Biomarker flags</div>
-          <span className="text-[11px] text-muted-foreground">12 markers analyzed</span>
+      {/* Helpful signals (was: Biomarker flags table) */}
+      <div className="glass rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">{FRIENDLY_COPY.helpfulSignals}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Markers are signals, not judgments — they just hint at what to support next.</div>
+          </div>
+          <span className="text-[11px] text-muted-foreground">{SAMPLE_BIOMARKERS.length} signals reviewed</span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs uppercase tracking-wider text-muted-foreground text-left">
-                <th className="py-2 font-medium">Marker</th>
-                <th className="py-2 font-medium">Value</th>
-                <th className="py-2 font-medium">Optimal</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SAMPLE_BIOMARKERS.map((b) => {
-                const c = statusColor(b.status);
-                return (
-                  <tr key={b.name} className="border-t border-border/40">
-                    <td className="py-3 font-medium">{b.name}</td>
-                    <td className="py-3 font-mono">{b.value} <span className="text-muted-foreground text-xs">{b.unit}</span></td>
-                    <td className="py-3 text-muted-foreground">{b.optimal}</td>
-                    <td className="py-3">
-                      <StatusPill status={b.status} />
-                      <span className="hidden" data-c={c} />
-                    </td>
-                    <td className="py-3 text-xs text-muted-foreground">{b.note ?? "—"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {SAMPLE_BIOMARKERS.map((b) => {
+            const tone: "mint" | "amber" | "coral" =
+              b.status === "optimal" ? "mint" : b.status === "watch" ? "amber" : "coral";
+            const friendly = b.status === "optimal" ? "optimal" : b.status === "watch" ? "watch" : "priority";
+            return (
+              <GentleMetricCard
+                key={b.name}
+                label={b.name}
+                value={b.value}
+                unit={b.unit}
+                target={b.optimal}
+                tone={tone}
+                hint={
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <FriendlyStatusBadge status={friendly} />
+                    {b.note && <span className="text-[11px] text-muted-foreground">{b.note}</span>}
+                  </div>
+                }
+              />
+            );
+          })}
         </div>
       </div>
 
       <ScoreBreakdown breakdown={breakdown} />
+
 
 
 
