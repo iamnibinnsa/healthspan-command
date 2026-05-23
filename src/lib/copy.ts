@@ -7,11 +7,10 @@
 export const FRIENDLY_COPY = {
   // Statuses
   status: {
-    optimal: "Strong",
-    watch: "Support",
-    priority: "Focus",
+    optimal: "On track",
+    watch: "Worth supporting",
+    priority: "Priority to discuss",
   },
-
 
   // Headlines
   heroTitle: "Ready to meet your future-health twin?",
