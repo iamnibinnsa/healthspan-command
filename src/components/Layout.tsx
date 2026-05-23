@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Activity } from "lucide-react";
 import type { ReactNode } from "react";
+import { AmbientBackground } from "@/components/AmbientBackground";
 
 const NAV = [
   { to: "/intake", label: "Intake" },
@@ -17,7 +18,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const { location } = useRouterState();
   return (
     <div className="relative min-h-screen flex flex-col">
-      <div className="pointer-events-none fixed inset-0 grid-bg opacity-40" />
+      <AmbientBackground />
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/60 border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 group">
