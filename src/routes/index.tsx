@@ -29,15 +29,14 @@ function Landing() {
             </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-semibold leading-[1.02]">
-              {FRIENDLY_COPY.heroTitle.split("future-health twin")[0]}
+              Ready to meet your{" "}
               <span className="bg-gradient-to-r from-[var(--friendly-teal)] via-[var(--friendly-mint)] to-[var(--friendly-sky)] bg-clip-text text-transparent">
                 future-health twin
               </span>
-              .
+              ?
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              {FRIENDLY_COPY.heroSubtitle} Upload labs, explore six body systems,
-              try gentle what-if changes, and unlock your 90-day quest plan — at your own pace.
+              {FRIENDLY_COPY.heroSubtitle}
             </p>
             <div className="flex flex-wrap gap-3 pt-2 items-center">
               <Link to="/intake">
@@ -53,14 +52,19 @@ function Landing() {
               </Link>
             </div>
 
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground/80">
+              <Sparkles className="h-3 w-3 text-[var(--friendly-mint)]" />
+              Step 1 of 4: Build your twin profile
+            </div>
+
             <TrustNote className="max-w-xl">
-              {FRIENDLY_COPY.signalDisclaimer}
+              Private by design for this demo. Educational only — not a diagnosis or prescription.
             </TrustNote>
 
             <div className="flex items-center gap-6 pt-2 text-xs text-muted-foreground">
-              <Stat label="Body systems mapped" value="6" />
-              <Stat label="Helpful signals tracked" value="12+" />
-              <Stat label="Quest horizon" value="90 days" />
+              <Stat label="6 body systems explored" value="6" />
+              <Stat label="12+ health signals organized" value="12+" />
+              <Stat label="90-day care plan" value="90 days" />
             </div>
           </div>
 
