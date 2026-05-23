@@ -146,9 +146,13 @@ function Simulator() {
     return ids;
   }, [sleepMin, wakeTime, zone2, strengthDays, fiberG, proteinMeal, discussApoB, discussVitD]);
 
+  const { awardXp, awardBadge } = useTwinProgress();
   useEffect(() => {
     setInterventions(activeIds);
-  }, [activeIds, setInterventions]);
+    activeIds.forEach((id) => awardXp(`sim.intervention.${id}`, 8, `Trying: ${id}`));
+    if (activeIds.includes("sleep45") || activeIds.includes("alcohol")) awardBadge("recovery-builder");
+    if (activeIds.includes("apob")) awardBadge("heart-helper");
+  }, [activeIds, setInterventions, awardXp, awardBadge]);
 
   const proj = projectScores(activeIds);
   const healthDelta = proj.healthspan - proj.baselineHealthspan;
