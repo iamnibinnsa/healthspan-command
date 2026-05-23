@@ -101,6 +101,8 @@ function LabUpload() {
       }
 
       setLabsLoaded(true);
+      awardXp("labs.upload", 20, "Lab signals shared");
+      awardBadge("signal-explorer");
       navigate({ to: "/dashboard" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Upload failed. Please retry.";
