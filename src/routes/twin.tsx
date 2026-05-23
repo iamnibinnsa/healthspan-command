@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X } from "lucide-react";
+import { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X, ArrowRight } from "lucide-react";
+
 import { INITIAL_DOMAINS, projectScores, statusColor, type DomainKey } from "@/lib/mockData";
 import { useTwin } from "@/lib/twin-context";
 import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
@@ -133,6 +134,16 @@ function TwinMap() {
           )}
         </aside>
       </div>
+
+      <div className="mt-8 flex justify-end">
+        <Link
+          to="/dashboard"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl btn-hero text-sm font-semibold"
+        >
+          See My First Insights <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
     </div>
   );
 }
+

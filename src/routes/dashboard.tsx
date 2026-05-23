@@ -171,7 +171,7 @@ function Dashboard() {
 
 
       <div className="flex flex-wrap gap-3 justify-end">
-        <Link to="/twin" className="px-5 py-2.5 rounded-lg glass text-sm font-semibold">Open Digital Twin Map</Link>
+        <Link to="/twin" className="px-5 py-2.5 rounded-lg glass text-sm font-semibold">Revisit Twin Map</Link>
         <Link to="/simulator" className="px-5 py-2.5 rounded-lg btn-hero text-sm font-semibold">What-If Simulator</Link>
       </div>
     </div>
