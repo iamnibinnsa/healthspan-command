@@ -9,19 +9,19 @@ export const Route = createFileRoute("/upload")({
 });
 
 const STAGES = [
-  "Extracting biomarkers from PDF…",
-  "Normalizing lab values against reference ranges…",
-  "Modeling six-system digital twin…",
-  "Compiling healthspan telemetry…",
+  "Reading your lab values…",
+  "Matching them to demo reference ranges…",
+  "Building your six-system twin…",
+  "Organizing your first health signals…",
 ];
 
 const TELEMETRY = [
-  "› parser.ocr.engine = lovable/lab-v3",
-  "› markers.detected = 14 / 14",
-  "› reference.frame = NHANES + ADA + AHA",
-  "› twin.systems.built = cognitive, cardio, metabolic, sleep, muscle, inflammation",
-  "› bio_age.delta = computing…",
-  "› projection.engine = directional-estimate v0.4",
+  "› reading markers safely",
+  "› 14 of 14 signals organized",
+  "› reference frame: NHANES + ADA + AHA (demo)",
+  "› twin systems built: cognitive, cardio, metabolic, sleep, muscle, inflammation",
+  "› estimating your age-gap signal…",
+  "› directional estimate engine v0.4",
 ];
 
 type UploadApiResponse = {
