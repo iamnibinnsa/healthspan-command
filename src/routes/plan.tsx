@@ -195,24 +195,21 @@ function Plan() {
     }, 1400);
   }, []);
 
+  const top3Domains = useMemo(() => {
+    const proj = projectScores(interventions);
+    const entries = INITIAL_DOMAINS.map((d) => ({ ...d, projected: proj.domains[d.key] }));
+    return [...entries].sort((a, b) => a.projected - b.projected).slice(0, 3);
+  }, [interventions]);
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">AI-generated plan</div>
-          <h1 className="text-4xl font-display font-semibold mt-1">Your 90-Day Healthspan Plan</h1>
-        </div>
-        {generated && (
-          <button
-            onClick={handleRegenerate}
-            disabled={generating}
-            className="px-4 py-2 rounded-lg glass text-xs font-semibold inline-flex items-center gap-2 hover:brightness-110 transition disabled:opacity-40"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${generating ? "animate-spin" : ""}`} />
-            {generating ? "Regenerating…" : "Regenerate Plan"}
-          </button>
-        )}
+      <div className="text-center mb-8">
+        <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">AI-generated plan</div>
+        <h1 className="text-4xl font-display font-semibold mt-2">Let's build your 90-day guide</h1>
+        <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto leading-relaxed">
+          We'll turn your twin map and selected changes into a simple plan you can follow, adjust, and discuss with a clinician.
+        </p>
       </div>
 
       {/* --- Generation overlay --- */}
@@ -239,55 +236,130 @@ function Plan() {
 
       {/* --- Pre-generate CTA --- */}
       {!generated && !generating && (
-        <div className="mt-8">
-          {/* Quick context card */}
-          <div className="glass rounded-2xl p-5 mb-6 flex flex-wrap gap-4 items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl glass-soft flex items-center justify-center">
-                <Activity className="h-5 w-5 text-[var(--neon-blue)]" />
+        <div className="mt-6 space-y-6">
+          {/* Main readiness card */}
+          <div className="glass rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[var(--neon-green)]/5 blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="h-14 w-14 mx-auto rounded-2xl glass flex items-center justify-center mb-4 relative">
+                <Sparkles className="h-6 w-6 text-[var(--neon-green)]" />
+                <div className="absolute inset-0 rounded-2xl border border-[var(--neon-green)]/20 animate-ping" />
               </div>
-              <div>
-                <div className="text-sm font-medium">{intake.name} · Age {intake.age}</div>
-                <div className="text-xs text-muted-foreground">
-                  {interventions.length} intervention{interventions.length !== 1 ? "s" : ""} selected
+              <h2 className="text-2xl font-display font-semibold">Your guide is almost ready</h2>
+              <p className="text-sm text-muted-foreground mt-2 max-w-lg mx-auto leading-relaxed">
+                Based on your twin profile, selected changes, and top focus areas.
+              </p>
+
+              {/* Info grid */}
+              <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-left max-w-3xl mx-auto">
+                <div className="glass-soft rounded-xl p-4 flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-[var(--neon-blue)]/10 flex items-center justify-center shrink-0">
+                    <User className="h-4 w-4 text-[var(--neon-blue)]" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium">Based on your twin profile</div>
+                    <div className="text-[11px] text-muted-foreground">{intake.name} · Age {intake.age}</div>
+                  </div>
+                </div>
+
+                <div className="glass-soft rounded-xl p-4 flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-[var(--neon-green)]/10 flex items-center justify-center shrink-0">
+                    <SlidersHorizontal className="h-4 w-4 text-[var(--neon-green)]" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium">Your selected changes</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {interventions.length > 0 ? `${interventions.length} personalized` : "Default starter set"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass-soft rounded-xl p-4 flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-[var(--neon-orange)]/10 flex items-center justify-center shrink-0">
+                    <Zap className="h-4 w-4 text-[var(--neon-orange)]" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium">Your top areas to support</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {top3Domains.map((d) => d.label).join(" · ")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass-soft rounded-xl p-4 flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-[var(--neon-blue)]/10 flex items-center justify-center shrink-0">
+                    <HeartHandshake className="h-4 w-4 text-[var(--neon-blue)]" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium">Doctor discussion notes</div>
+                    <div className="text-[11px] text-muted-foreground">Included in every plan</div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
+
+              {/* No-interventions friendly message */}
               {interventions.length === 0 && (
-                <span className="text-xs text-muted-foreground">No interventions selected — <Link to="/simulator" className="underline text-[var(--neon-blue)]">open simulator</Link></span>
+                <div className="mt-5 glass-soft rounded-xl p-4 max-w-lg mx-auto text-left flex items-start gap-3">
+                  <Compass className="h-5 w-5 text-[var(--neon-blue)] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm">
+                      No changes selected yet — we'll create a gentle starter plan.
+                      You can also visit the simulator to personalize it.
+                    </p>
+                    <Link to="/simulator" className="text-xs text-[var(--neon-blue)] underline mt-1 inline-block hover:text-[var(--neon-green)] transition">
+                      Personalize in simulator →
+                    </Link>
+                  </div>
+                </div>
               )}
-              {INTERVENTIONS.filter((i) => interventions.includes(i.id)).map((i) => (
-                <span key={i.id} className="text-[11px] px-2 py-1 rounded-full border border-[var(--neon-green)]/30 text-[var(--neon-green)] font-mono">
-                  {i.label}
-                </span>
+
+              {/* CTA */}
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={handleGenerate}
+                  className="px-8 py-3 rounded-xl btn-hero text-sm font-semibold inline-flex items-center gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Create My 90-Day Guide
+                </button>
+              </div>
+
+              {/* Reassurance */}
+              <p className="mt-4 text-[11px] text-muted-foreground max-w-md mx-auto leading-relaxed">
+                This is not a diagnosis or prescription. It's an educational support plan to help you organize next steps.
+              </p>
+            </div>
+          </div>
+
+          {/* Phase preview */}
+          <div className="glass rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Map className="h-4 w-4 text-[var(--neon-blue)]" />
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">What your plan looks like</span>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {[
+                { week: "Week 1–2", title: "Find your rhythm", desc: "Anchor one habit per domain. Do not optimize yet.", color: "--neon-blue" },
+                { week: "Week 3–6", title: "Build momentum", desc: "Layer in intensity. Track adherence, not perfection.", color: "--neon-green" },
+                { week: "Week 7–12", title: "Review and refine", desc: "Progressive overload, recalibration, and testing.", color: "--neon-orange" },
+              ].map((phase) => (
+                <div key={phase.week} className="glass-soft rounded-xl p-4 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-0.5" style={{ background: `var(${phase.color})`, opacity: 0.6 }} />
+                  <div className="text-[10px] font-mono uppercase tracking-wider mt-1" style={{ color: `var(${phase.color})` }}>{phase.week}</div>
+                  <div className="text-sm font-medium mt-1">{phase.title}</div>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{phase.desc}</p>
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="glass rounded-3xl p-12 text-center">
-            <div className="h-16 w-16 mx-auto rounded-2xl glass flex items-center justify-center mb-4 relative">
-              <Sparkles className="h-7 w-7 text-[var(--neon-green)]" />
-              <div className="absolute inset-0 rounded-2xl border border-[var(--neon-green)]/20 animate-ping" />
-            </div>
-            <h2 className="text-2xl font-display font-semibold">Ready to generate</h2>
-            <p className="text-sm text-muted-foreground mt-2 max-w-lg mx-auto leading-relaxed">
-              MediTwin will build a structured 90-day protocol from your twin profile,
-              your {interventions.length} selected interventions, and public directional evidence.
+          {/* Gamified copy */}
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-[var(--neon-green)]" />
+              Next unlock: your personal healthspan quest board
             </p>
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={handleGenerate}
-                className="px-8 py-3 rounded-xl btn-hero text-sm font-semibold inline-flex items-center gap-2"
-              >
-                <Sparkles className="h-4 w-4" />
-                {FRIENDLY_COPY.ctaGeneratePlan}
-              </button>
-            </div>
-            <p className="mt-4 text-[11px] text-muted-foreground max-w-md mx-auto">
-              {FRIENDLY_COPY.notDiagnosis}
-            </p>
-
           </div>
         </div>
       )}
