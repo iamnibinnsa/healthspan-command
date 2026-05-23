@@ -72,6 +72,7 @@ const INSIGHTS = [
 
 function Intake() {
   const { intake, setIntake } = useTwin();
+  const { awardXp, awardBadge } = useTwinProgress();
   const [step, setStep] = useState(0);
   const [xp, setXp] = useState(0);
   const [pulseXp, setPulseXp] = useState(false);
@@ -82,6 +83,8 @@ function Intake() {
     if (step < 3) setStep(step + 1);
     else {
       setIntake(draft);
+      awardXp("intake.complete", 10, "Intake completed");
+      awardBadge("twin-builder");
       navigate({ to: "/upload" });
     }
   };
