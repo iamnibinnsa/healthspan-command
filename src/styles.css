@@ -175,12 +175,90 @@
     opacity: .35;
     animation: ping 1.8s cubic-bezier(0,0,.2,1) infinite;
   }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: .375rem;
+    padding: .25rem .625rem; border-radius: 9999px;
+    font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    font-weight: 600; font-family: var(--font-mono);
+    border: 1px solid currentColor;
+    background: color-mix(in oklab, currentColor 10%, transparent);
+  }
+  .status-pill::before {
+    content: ""; height: 6px; width: 6px; border-radius: 9999px;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .status-optimal { color: var(--neon-green); }
+  .status-watch   { color: var(--neon-orange); }
+  .status-priority{ color: var(--neon-red); }
+
+  .scanlines {
+    background-image: repeating-linear-gradient(
+      0deg,
+      color-mix(in oklab, var(--neon-blue) 6%, transparent) 0 1px,
+      transparent 1px 4px
+    );
+    mix-blend-mode: screen;
+    opacity: .25;
+  }
+  .scan-beam {
+    background: linear-gradient(180deg,
+      transparent 0%,
+      color-mix(in oklab, var(--neon-blue) 18%, transparent) 45%,
+      color-mix(in oklab, var(--neon-green) 22%, transparent) 50%,
+      color-mix(in oklab, var(--neon-blue) 18%, transparent) 55%,
+      transparent 100%);
+    filter: blur(2px);
+    animation: beam-y 7s linear infinite;
+  }
+  .drift-grid {
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--neon-blue) 10%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--neon-blue) 10%, transparent) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 35%, transparent 85%);
+    animation: drift 24s linear infinite;
+  }
+  .particles::before, .particles::after {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 20% 30%, color-mix(in oklab, var(--neon-blue) 80%, transparent), transparent 60%),
+      radial-gradient(1px 1px at 70% 60%, color-mix(in oklab, var(--neon-green) 80%, transparent), transparent 60%),
+      radial-gradient(1.5px 1.5px at 40% 80%, color-mix(in oklab, var(--neon-orange) 70%, transparent), transparent 60%),
+      radial-gradient(1px 1px at 85% 25%, color-mix(in oklab, var(--neon-blue) 80%, transparent), transparent 60%),
+      radial-gradient(1.5px 1.5px at 10% 70%, color-mix(in oklab, var(--neon-green) 70%, transparent), transparent 60%);
+    background-size: 600px 600px;
+    animation: drift-particles 40s linear infinite;
+    opacity: .55;
+  }
+  .particles::after {
+    animation-duration: 70s; animation-direction: reverse; opacity: .35;
+    background-size: 800px 800px;
+  }
 }
 
 @keyframes ping {
   0% { transform: scale(0.8); opacity: .6; }
   80%, 100% { transform: scale(2); opacity: 0; }
 }
+@keyframes beam-y {
+  0%   { transform: translateY(-30%); }
+  100% { transform: translateY(130%); }
+}
+@keyframes drift {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 60px 60px, 60px 60px; }
+}
+@keyframes drift-particles {
+  0% { background-position: 0 0; }
+  100% { background-position: 600px 300px; }
+}
+@keyframes sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.sweep { animation: sweep 6s linear infinite; transform-origin: center; }
 
 @keyframes float-y {
   0%,100% { transform: translateY(0); }

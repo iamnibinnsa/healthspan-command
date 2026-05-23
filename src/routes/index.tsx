@@ -16,15 +16,17 @@ function Landing() {
               <Sparkles className="h-3 w-3" /> Caltech Longevity Hackathon · MVP
             </span>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-semibold leading-[1.02]">
-              Meet your{" "}
+              Your body has{" "}
               <span className="bg-gradient-to-r from-[var(--neon-blue)] via-[var(--neon-green)] to-[var(--neon-orange)] bg-clip-text text-transparent">
-                Digital Medicine Twin
-              </span>{" "}
-              for Longevity
+                telemetry
+              </span>
+              .<br />
+              MediTwin turns it into a{" "}
+              <span className="neon-text-green">mission plan</span>.
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              Upload labs. Map healthspan risks across six body systems. Simulate interventions in
-              real time. Generate a 90-day plan and a brief you can hand to your physician.
+              Most tools measure you. MediTwin models you. Upload labs, map risks across six body
+              systems, simulate interventions, and generate your 90-day plan.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link to="/intake" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl btn-hero text-sm font-semibold">
@@ -38,9 +40,9 @@ function Landing() {
               </Link>
             </div>
             <div className="flex items-center gap-6 pt-4 text-xs text-muted-foreground">
-              <Stat label="Body systems mapped" value="6" />
+              <Stat label="Body systems modeled" value="6" />
               <Stat label="Biomarkers tracked" value="12+" />
-              <Stat label="Demo plan" value="90 days" />
+              <Stat label="Plan horizon" value="90 days" />
             </div>
           </div>
 
@@ -51,6 +53,11 @@ function Landing() {
               <div className="absolute inset-6 rounded-full border border-[var(--neon-blue)]/30 animate-pulse" />
               <div className="absolute inset-12 rounded-full border border-[var(--neon-green)]/30" />
               <div className="absolute inset-20 rounded-full border border-[var(--neon-orange)]/30" />
+              <div className="absolute inset-6 sweep">
+                <div className="absolute top-1/2 left-1/2 h-1/2 w-1/2 origin-top-left -translate-x-0 -translate-y-0"
+                  style={{ background: "conic-gradient(from 0deg, color-mix(in oklab, var(--neon-blue) 35%, transparent), transparent 60deg)" }}
+                />
+              </div>
               <div className="relative h-full grid grid-cols-3 grid-rows-3 items-center justify-items-center">
                 <NodeIcon Icon={Brain} color="neon-blue" pos="" />
                 <div />

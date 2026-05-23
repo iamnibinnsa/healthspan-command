@@ -8,9 +8,19 @@ export const Route = createFileRoute("/upload")({
 });
 
 const STAGES = [
-  "Extracting biomarkers…",
-  "Normalizing lab values…",
-  "Building your digital medicine twin…",
+  "Extracting biomarkers from PDF…",
+  "Normalizing lab values against reference ranges…",
+  "Modeling six-system digital twin…",
+  "Compiling healthspan telemetry…",
+];
+
+const TELEMETRY = [
+  "› parser.ocr.engine = lovable/lab-v3",
+  "› markers.detected = 14 / 14",
+  "› reference.frame = NHANES + ADA + AHA",
+  "› twin.systems.built = cognitive, cardio, metabolic, sleep, muscle, inflammation",
+  "› bio_age.delta = computing…",
+  "› projection.engine = directional-estimate v0.4",
 ];
 
 function LabUpload() {
@@ -24,18 +34,19 @@ function LabUpload() {
     setFileName(label);
     setProcessing(true);
     setStage(0);
-    const stageMs = 900;
-    [1, 2, 3].forEach((i) => setTimeout(() => setStage(i), i * stageMs));
+    const stageMs = 850;
+    [1, 2, 3, 4].forEach((i) => setTimeout(() => setStage(i), i * stageMs));
     setTimeout(() => {
       setLabsLoaded(true);
       navigate({ to: "/dashboard" });
-    }, stageMs * 3 + 500);
+    }, stageMs * 4 + 400);
   };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
       <div className="text-xs font-mono text-[var(--neon-blue)] uppercase tracking-[0.3em]">Lab intake</div>
-      <h1 className="text-4xl font-display font-semibold mt-2 mb-8">Upload your lab report</h1>
+      <h1 className="text-4xl font-display font-semibold mt-2 mb-2">Upload your lab report</h1>
+      <p className="text-sm text-muted-foreground mb-8">We extract markers, normalize them, and build your twin in seconds.</p>
 
       {!processing ? (
         <div className="space-y-6">
@@ -75,17 +86,52 @@ function LabUpload() {
           </button>
         </div>
       ) : (
-        <div className="glass rounded-3xl p-10 space-y-6">
-          <div className="flex items-center gap-3">
-            <FileText className="h-5 w-5 text-[var(--neon-blue)]" />
-            <span className="font-mono text-sm">{fileName}</span>
+        <div className="glass rounded-3xl p-8 space-y-6 relative overflow-hidden">
+          <div className="relative h-44 rounded-2xl glass-soft overflow-hidden">
+            <div className="absolute inset-0 grid-bg opacity-40" />
+            <div className="absolute left-0 right-0 h-12 scan-beam" style={{ animationDuration: "2.4s" }} />
+            <svg viewBox="0 0 200 100" className="absolute inset-0 h-full w-full">
+              <g stroke="var(--neon-blue)" strokeWidth="0.6" fill="none" opacity="0.7">
+                <circle cx="100" cy="22" r="10" />
+                <path d="M100 32 L100 62 M85 42 L115 42 M88 80 L100 62 L112 80" />
+                <circle cx="100" cy="22" r="14" strokeOpacity="0.3" />
+                <circle cx="100" cy="22" r="18" strokeOpacity="0.15" />
+              </g>
+              {[
+                [100, 22, "var(--neon-blue)"],
+                [85, 42, "var(--neon-red)"],
+                [115, 42, "var(--neon-orange)"],
+                [100, 55, "var(--neon-green)"],
+                [88, 80, "var(--neon-orange)"],
+                [112, 80, "var(--neon-green)"],
+              ].map(([cx, cy, c], i) => (
+                <circle key={i} cx={cx as number} cy={cy as number} r="1.6" fill={c as string}>
+                  <animate attributeName="r" values="1.2;2.6;1.2" dur="1.6s" begin={`${i * 0.2}s`} repeatCount="indefinite" />
+                </circle>
+              ))}
+            </svg>
+            <div className="absolute bottom-2 left-3 font-mono text-[10px] text-[var(--neon-blue)] uppercase tracking-[0.25em]">
+              twin.scan · live
+            </div>
+            <div className="absolute top-2 right-3 font-mono text-[10px] text-[var(--neon-green)]">
+              ● signal locked
+            </div>
           </div>
-          <div className="space-y-3">
+
+          <div className="flex items-center gap-3 border-b border-border/40 pb-3">
+            <FileText className="h-4 w-4 text-[var(--neon-blue)]" />
+            <span className="font-mono text-xs">{fileName}</span>
+            <span className="ml-auto font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+              stage {Math.min(stage + 1, STAGES.length)} / {STAGES.length}
+            </span>
+          </div>
+
+          <div className="space-y-2">
             {STAGES.map((s, i) => {
               const done = stage > i;
               const active = stage === i;
               return (
-                <div key={s} className={`flex items-center gap-3 p-4 rounded-xl ${
+                <div key={s} className={`flex items-center gap-3 p-3 rounded-xl transition ${
                   active ? "glass neon-border-blue" : done ? "glass-soft" : "opacity-40"
                 }`}>
                   {done ? (
@@ -97,6 +143,12 @@ function LabUpload() {
                 </div>
               );
             })}
+          </div>
+
+          <div className="font-mono text-[10px] leading-relaxed border-t border-border/30 pt-3 space-y-0.5">
+            {TELEMETRY.slice(0, Math.min(stage + 2, TELEMETRY.length)).map((t) => (
+              <div key={t} className="text-[var(--neon-green)]/70">{t}</div>
+            ))}
           </div>
         </div>
       )}
