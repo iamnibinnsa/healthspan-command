@@ -44,17 +44,18 @@ export function Layout({ children }: { children: ReactNode }) {
               </div>
             </div>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto no-scrollbar md:justify-center">
             {NAV.map((n) => {
               const active = location.pathname === n.to;
               return (
                 <Link
                   key={n.to}
                   to={n.to}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium uppercase tracking-wider transition ${
+                  aria-current={active ? "page" : undefined}
+                  className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-medium uppercase tracking-wider transition ${
                     active
                       ? "bg-[var(--neon-blue)]/15 text-[var(--neon-blue)] neon-text-blue"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
                   {n.label}
@@ -62,7 +63,7 @@ export function Layout({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <TwinProgressBadge />
           {user ? (
             <button
