@@ -81,6 +81,7 @@ export function Layout({ children }: { children: ReactNode }) {
               Sign in
             </Link>
           )}
+          </div>
         </div>
       </header>
 
