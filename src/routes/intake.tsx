@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTwin } from "@/lib/twin-context";
 import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ProgressQuestStepper } from "@/components/ProgressQuestStepper";
+import { TrustNote } from "@/components/TrustNote";
 
 export const Route = createFileRoute("/intake")({
   component: Intake,
