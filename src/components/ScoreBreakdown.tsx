@@ -16,9 +16,9 @@ export function ScoreBreakdown({ breakdown }: { breakdown: HealthspanBreakdown }
       >
         <div>
           <div className="text-xs uppercase tracking-[0.25em] text-[var(--neon-blue)]">
-            Transparent Scoring
+            Transparent scoring
           </div>
-          <div className="font-display text-lg mt-0.5">How this score is calculated</div>
+          <div className="font-display text-lg mt-0.5">How your Twin Readiness Score is calculated</div>
         </div>
         <ChevronDown
           className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`}
