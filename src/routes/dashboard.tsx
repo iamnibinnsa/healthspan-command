@@ -15,6 +15,7 @@ import { HealthSignalCards } from "@/components/HealthSignalCards";
 import { computeHealthspan } from "@/lib/scoringEngine";
 import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
 import { TrustNote } from "@/components/TrustNote";
+import { ProgressMiniCard } from "@/components/TwinProgress";
 import { FRIENDLY_COPY } from "@/lib/copy";
 
 export const Route = createFileRoute("/dashboard")({
