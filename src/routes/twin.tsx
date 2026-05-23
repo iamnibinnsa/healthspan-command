@@ -4,6 +4,7 @@ import { Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X, ArrowRight, Spar
 
 import { INITIAL_DOMAINS, projectScores, type DomainKey } from "@/lib/mockData";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
 import { TrustNote } from "@/components/TrustNote";
 import { FRIENDLY_COPY } from "@/lib/copy";
