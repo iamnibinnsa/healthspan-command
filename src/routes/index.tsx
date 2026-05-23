@@ -53,6 +53,11 @@ function Landing() {
               <div className="absolute inset-6 rounded-full border border-[var(--neon-blue)]/30 animate-pulse" />
               <div className="absolute inset-12 rounded-full border border-[var(--neon-green)]/30" />
               <div className="absolute inset-20 rounded-full border border-[var(--neon-orange)]/30" />
+              <div className="absolute inset-6 sweep">
+                <div className="absolute top-1/2 left-1/2 h-1/2 w-1/2 origin-top-left -translate-x-0 -translate-y-0"
+                  style={{ background: "conic-gradient(from 0deg, color-mix(in oklab, var(--neon-blue) 35%, transparent), transparent 60deg)" }}
+                />
+              </div>
               <div className="relative h-full grid grid-cols-3 grid-rows-3 items-center justify-items-center">
                 <NodeIcon Icon={Brain} color="neon-blue" pos="" />
                 <div />
