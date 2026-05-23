@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import { INITIAL_DOMAINS, INTERVENTIONS, SAMPLE_BIOMARKERS, projectScores } from "@/lib/mockData";
 import { FileText, Copy, ArrowLeft, Printer } from "lucide-react";
 
