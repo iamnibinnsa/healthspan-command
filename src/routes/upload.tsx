@@ -169,7 +169,7 @@ trailer
               <Sparkles className="h-5 w-5 text-[var(--neon-green)]" />
             </div>
             <div className="text-left flex-1">
-              <div className="font-display text-lg font-semibold">Use Sample Lab Report</div>
+              <div className="font-display text-lg font-semibold">Explore Sample Twin</div>
               <div className="text-xs text-muted-foreground">Alex Morgan · 48 · comprehensive metabolic + lipid panel</div>
             </div>
             <span className="text-xs neon-text-green opacity-0 group-hover:opacity-100 transition">Load →</span>
