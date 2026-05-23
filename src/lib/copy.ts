@@ -13,8 +13,9 @@ export const FRIENDLY_COPY = {
   },
 
   // Headlines
-  heroTitle: "Meet your future-health twin",
-  heroSubtitle: "Let's learn what your body may need next.",
+  heroTitle: "Ready to meet your future-health twin?",
+  heroSubtitle:
+    "MediTwin turns your labs, habits, and wearable signals into a friendly digital twin that helps you understand your body, explore what-if changes, and build a 90-day plan with confidence.",
 
   // Sections
   nextSteps: "Your next best steps",
@@ -31,10 +32,10 @@ export const FRIENDLY_COPY = {
     "Educational decision-support, not a diagnosis, treatment, or prescription.",
 
   // Buttons
-  ctaStart: "Start your journey",
+  ctaStart: "Meet My Twin",
   ctaContinue: "Continue the quest",
   ctaGeneratePlan: "Craft my 90-day quest plan",
-  ctaSampleLab: "Try a sample lab report",
+  ctaSampleLab: "Explore Sample Twin",
 };
 
 /** Friendly synonyms for harsh clinical words. Use when re-labeling consumer UI. */
