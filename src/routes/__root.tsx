@@ -32,8 +32,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="max-w-md text-center glass rounded-2xl p-10">
-        <h1 className="text-xl font-semibold">Telemetry interrupted</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Something went wrong. Try again.</p>
+        <h1 className="text-xl font-semibold">Something interrupted your twin</h1>
+        <p className="mt-2 text-sm text-muted-foreground">No data was lost. Give it another try.</p>
         <button
           onClick={() => { router.invalidate(); reset(); }}
           className="mt-6 px-4 py-2 rounded-lg btn-hero text-xs font-semibold"
