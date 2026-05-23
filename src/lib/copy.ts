@@ -7,9 +7,9 @@
 export const FRIENDLY_COPY = {
   // Statuses
   status: {
-    optimal: "On track",
-    watch: "Worth supporting",
-    priority: "Priority to discuss",
+    optimal: "Strong",
+    watch: "Support",
+    priority: "Focus",
   },
 
   // Headlines
