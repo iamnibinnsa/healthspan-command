@@ -197,9 +197,9 @@
     background: currentColor;
     box-shadow: 0 0 8px currentColor;
   }
-  .status-optimal { color: var(--neon-green); }
-  .status-watch   { color: var(--neon-orange); }
-  .status-priority{ color: var(--neon-red); }
+  .status-optimal { color: var(--friendly-mint); }
+  .status-watch   { color: var(--friendly-amber); }
+  .status-priority{ color: var(--friendly-coral); }
 
   .scanlines {
     background-image: repeating-linear-gradient(
