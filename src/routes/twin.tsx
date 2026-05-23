@@ -133,7 +133,7 @@ function TwinMap() {
               return (
                 <button
                   key={d.key}
-                  onClick={() => setActive(d.key)}
+                  onClick={() => handleSelect(d.key)}
                   style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                   className="absolute -translate-x-1/2 -translate-y-1/2 group transition-transform duration-300 ease-out hover:scale-105"
                 >
