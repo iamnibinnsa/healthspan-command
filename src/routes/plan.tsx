@@ -279,12 +279,13 @@ function Plan() {
                 className="px-8 py-3 rounded-xl btn-hero text-sm font-semibold inline-flex items-center gap-2"
               >
                 <Sparkles className="h-4 w-4" />
-                Generate My 90-Day Healthspan Plan
+                {FRIENDLY_COPY.ctaGeneratePlan}
               </button>
             </div>
             <p className="mt-4 text-[11px] text-muted-foreground max-w-md mx-auto">
-              Output is an educational decision-support brief. Not a diagnosis or prescription.
+              {FRIENDLY_COPY.notDiagnosis}
             </p>
+
           </div>
         </div>
       )}
