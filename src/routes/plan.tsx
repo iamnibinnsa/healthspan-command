@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { useTwin } from "@/lib/twin-context";
-import { INTERVENTIONS, projectScores, INITIAL_DOMAINS } from "@/lib/mockData";
+import { INTERVENTIONS, projectScores, INITIAL_DOMAINS, FRIENDLY_DOMAIN } from "@/lib/mockData";
 import { StatusPill } from "@/components/StatusPill";
 import {
   Sparkles, Loader2, RefreshCw, TrendingDown, AlertTriangle,
   FileText, Stethoscope, Calendar, ShieldCheck, Activity,
-  Clock, Target, ListChecks, ChevronRight
+  Clock, Target, ListChecks, ChevronRight, Zap, User, SlidersHorizontal,
+  HeartHandshake, Map, Compass
 } from "lucide-react";
 import { FRIENDLY_COPY } from "@/lib/copy";
 
