@@ -201,6 +201,10 @@
   .status-watch   { color: var(--friendly-amber); }
   .status-priority{ color: var(--friendly-coral); }
 
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+
   .scanlines {
     background-image: repeating-linear-gradient(
       0deg,
