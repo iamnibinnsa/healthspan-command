@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTwin } from "@/lib/twin-context";
+import { useTwinProgress } from "@/lib/twin-progress";
 import {
   INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, projectScores, type DomainKey,
 } from "@/lib/mockData";
