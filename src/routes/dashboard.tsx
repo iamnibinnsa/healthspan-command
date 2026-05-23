@@ -11,6 +11,8 @@ import {
 } from "@/lib/mockData";
 import { HealthGauge } from "@/components/HealthGauge";
 import { StatusPill } from "@/components/StatusPill";
+import { ScoreBreakdown } from "@/components/ScoreBreakdown";
+import { computeHealthspan } from "@/lib/scoringEngine";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
