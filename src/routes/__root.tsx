@@ -53,7 +53,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "MediTwin — Digital Medicine Twin for Longevity" },
+      { title: "LIFE — Be the CEO of Your Own Health" },
       { name: "description", content: "Meet your digital medicine twin. Organize health signals, explore small changes, and build a 90-day guide with your clinician in mind." },
     ],
     links: [

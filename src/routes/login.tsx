@@ -49,7 +49,7 @@ function LoginPage() {
             <Activity className="h-5 w-5 text-[var(--neon-blue)]" />
           </div>
           <div>
-            <div className="font-display font-semibold text-lg">MediTwin</div>
+            <div className="font-display font-bold text-lg tracking-tight">LIFE</div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Your future-health twin
             </div>

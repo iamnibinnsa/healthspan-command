@@ -104,4 +104,4 @@ export const DOMAIN_BLURBS: Record<string, string> = {
 export const DISCLAIMER_SHORT =
   "These are educational signals, not diagnoses. Discuss medical decisions with your clinician.";
 export const DISCLAIMER_LONG =
-  "MediTwin is an educational decision-support prototype. It does not diagnose, treat, or prescribe. All scores and projections are directional estimates intended to spark a better conversation with a licensed clinician.";
+  "LIFE is an educational decision-support prototype. It does not diagnose, treat, or prescribe. All scores and projections are directional estimates intended to spark a better conversation with a licensed clinician.";

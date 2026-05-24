@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { useTwin } from "@/lib/twin-context";
-import { SAMPLE_BIOMARKERS } from "@/lib/mockData";
+import { SAMPLE_BIOMARKERS, type Biomarker, type Status } from "@/lib/mockData";
+import type { ParsedBiomarkers } from "@/lib/twin-context";
 import {
   computeBloodBasedClock,
   simulateMethylationClock,
@@ -28,8 +29,30 @@ export const Route = createFileRoute("/clock")({
 /*  Page                                                                 */
 /* ------------------------------------------------------------------ */
 
+function parsedToBiomarkers(p: ParsedBiomarkers): Biomarker[] {
+  const band = (v: number, lo: number, hi: number): Status =>
+    v < lo ? "optimal" : v < hi ? "watch" : "priority";
+  const rev = (v: number, lo: number, hi: number): Status =>
+    v >= lo ? "optimal" : v >= hi ? "watch" : "priority";
+  return [
+    { name: "HbA1c",          value: p.hba1c,           unit: "%",        optimal: "< 5.4",    status: band(p.hba1c, 5.4, 6) },
+    { name: "Fasting Glucose", value: p.fasting_glucose, unit: "mg/dL",    optimal: "70–95",    status: band(p.fasting_glucose, 95, 110) },
+    { name: "ApoB",            value: p.apob,            unit: "mg/dL",    optimal: "< 80",     status: band(p.apob, 80, 100) },
+    { name: "LDL-C",           value: p.ldl_c,           unit: "mg/dL",    optimal: "< 100",    status: band(p.ldl_c, 100, 130) },
+    { name: "HDL-C",           value: p.hdl_c,           unit: "mg/dL",    optimal: "> 50",     status: rev(p.hdl_c, 50, 40) },
+    { name: "Triglycerides",   value: p.triglycerides,   unit: "mg/dL",    optimal: "< 100",    status: band(p.triglycerides, 100, 175) },
+    { name: "hs-CRP",          value: p.hs_crp,          unit: "mg/L",     optimal: "< 1.0",    status: band(p.hs_crp, 1, 3) },
+    { name: "Vitamin D",       value: p.vitamin_d,       unit: "ng/mL",    optimal: "40–60",    status: rev(p.vitamin_d, 40, 25) },
+    { name: "Resting HR",      value: p.resting_hr,      unit: "bpm",      optimal: "55–65",    status: band(p.resting_hr, 65, 75) },
+    { name: "HRV",             value: p.hrv,             unit: "ms",       optimal: "> 50",     status: rev(p.hrv, 50, 35) },
+    { name: "Sleep Duration",  value: p.sleep_duration,  unit: "hr/night", optimal: "7–8.5",    status: rev(p.sleep_duration, 7, 6) },
+    { name: "VO2 max",         value: p.vo2_max,         unit: "ml/kg/min",optimal: "> 42",     status: rev(p.vo2_max, 42, 35) },
+  ] as Biomarker[];
+}
+
 function Clock() {
-  const { intake } = useTwin();
+  const { intake, parsedBiomarkers } = useTwin();
+  const activeBiomarkers = parsedBiomarkers ? parsedToBiomarkers(parsedBiomarkers) : SAMPLE_BIOMARKERS;
   const [method, setMethod] = useState<ClockMethod>("blood-marker");
   const [computing, setComputing] = useState(false);
   const [stageText, setStageText] = useState("");
@@ -55,14 +78,14 @@ function Clock() {
       }, 600);
       window.setTimeout(() => {
         window.clearInterval(interval);
-        setResult(simulateMethylationClock(intake, SAMPLE_BIOMARKERS));
+        setResult(simulateMethylationClock(intake, activeBiomarkers));
         setComputing(false);
         setStageText("");
       }, 2500);
     } else {
       setStageText("Aggregating blood markers and lifestyle inputs…");
       window.setTimeout(() => {
-        setResult(computeBloodBasedClock(intake, SAMPLE_BIOMARKERS));
+        setResult(computeBloodBasedClock(intake, activeBiomarkers));
         setComputing(false);
         setStageText("");
       }, 900);
@@ -100,6 +123,7 @@ function Clock() {
       {method === "blood-marker" ? (
         <BloodMarkerPanel
           intake={intake}
+          markers={activeBiomarkers}
           onCompute={compute}
           computing={computing}
           stageText={stageText}
@@ -290,14 +314,14 @@ function MethodCard({
 /* ------------------------------------------------------------------ */
 
 function BloodMarkerPanel({
-  intake, onCompute, computing, stageText,
+  intake, markers, onCompute, computing, stageText,
 }: {
   intake: ReturnType<typeof useTwin>["intake"];
+  markers: Biomarker[];
   onCompute: () => void;
   computing: boolean;
   stageText: string;
 }) {
-  const markers = SAMPLE_BIOMARKERS;
   return (
     <div className="glass rounded-2xl p-5 sm:p-6 space-y-4">
       <div className="flex items-center gap-3">

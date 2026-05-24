@@ -33,7 +33,7 @@ export function TwinRecipe({ breakdown }: { breakdown: HealthspanBreakdown }) {
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="font-display text-2xl font-semibold">How MediTwin builds your score</h2>
+        <h2 className="font-display text-2xl font-semibold">How LIFE builds your score</h2>
         <p className="text-[12px] text-muted-foreground mt-1 max-w-2xl">
           Six ingredients blend into your Twin Readiness Score. Each one is weighted by how much it
           shapes long-term healthspan — none of them define you on their own.

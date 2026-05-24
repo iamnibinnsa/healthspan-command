@@ -30,7 +30,7 @@ const STEP_HEADERS = [
   {
     eyebrow: "Quest 1 of 4 · Profile",
     title:   "Let's create your twin",
-    subtitle:"A few basics help MediTwin personalize your health signals.",
+    subtitle:"A few basics help LIFE personalize your health signals.",
   },
   {
     eyebrow: "Quest 2 of 4 · Rhythm",
@@ -40,7 +40,7 @@ const STEP_HEADERS = [
   {
     eyebrow: "Quest 3 of 4 · Signals",
     title:   "Tune your stress & fuel signals",
-    subtitle:"These signals help MediTwin understand what your body may need more support with.",
+    subtitle:"These signals help LIFE understand what your body may need more support with.",
   },
   {
     eyebrow: "Quest 4 of 4 · Context",

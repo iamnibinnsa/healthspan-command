@@ -1,11 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
-import { useTwin, type IntakeData } from "@/lib/twin-context";
+import { useTwin, type IntakeData, type ParsedBiomarkers } from "@/lib/twin-context";
 import {
-  INTERVENTIONS, projectScores, INITIAL_DOMAINS, type DomainKey,
+  INITIAL_BIO_AGE_GAP, INTERVENTIONS, projectScores, INITIAL_DOMAINS, SAMPLE_BIOMARKERS,
+  type Biomarker, type DomainKey,
 } from "@/lib/mockData";
-import { projectBioAge } from "@/lib/bioAgeProjection";
+import { bandFromGap } from "@/lib/bioAgeProjection";
+import { computeHealthspan } from "@/lib/scoringEngine";
 import { TrustNote } from "@/components/TrustNote";
+
+function parsedToBiomarkers(p: ParsedBiomarkers): Biomarker[] {
+  return [
+    { name: "HbA1c",           value: p.hba1c,           unit: "%",         optimal: "< 5.4",     status: "watch" as const },
+    { name: "Fasting Glucose", value: p.fasting_glucose, unit: "mg/dL",     optimal: "70–95",     status: "watch" as const },
+    { name: "ApoB",            value: p.apob,            unit: "mg/dL",     optimal: "< 80",      status: "watch" as const },
+    { name: "LDL-C",           value: p.ldl_c,           unit: "mg/dL",     optimal: "< 100",     status: "watch" as const },
+    { name: "HDL-C",           value: p.hdl_c,           unit: "mg/dL",     optimal: "> 50",      status: "watch" as const },
+    { name: "Triglycerides",   value: p.triglycerides,   unit: "mg/dL",     optimal: "< 100",     status: "watch" as const },
+    { name: "hs-CRP",          value: p.hs_crp,          unit: "mg/L",      optimal: "< 1.0",     status: "watch" as const },
+    { name: "Vitamin D",       value: p.vitamin_d,       unit: "ng/mL",     optimal: "40–60",     status: "watch" as const },
+    { name: "Resting HR",      value: p.resting_hr,      unit: "bpm",       optimal: "55–65",     status: "watch" as const },
+    { name: "HRV",             value: p.hrv,             unit: "ms",        optimal: "> 50",      status: "watch" as const },
+    { name: "VO2 max",         value: p.vo2_max,         unit: "ml/kg/min", optimal: "> 42",      status: "watch" as const },
+  ];
+}
 import { SECTION_COPY, CTA, MICROCOPY } from "@/lib/copy";
 import {
   Sparkles, Loader2, RefreshCw, TrendingDown, TrendingUp,
@@ -62,14 +80,21 @@ interface GeneratedPlan {
 
 function buildPlan(
   interventions: string[],
+  realDomainScores?: Record<DomainKey, number>,
+  realBaselineScore?: number,
 ): GeneratedPlan {
   const proj = projectScores(interventions);
   const active = INTERVENTIONS.filter((i) => interventions.includes(i.id));
 
-  const domainEntries = INITIAL_DOMAINS.map((d) => ({
-    ...d,
-    projected: proj.domains[d.key],
-  }));
+  // Use real scores if available, otherwise fall back to mock baseline
+  const domainEntries = INITIAL_DOMAINS.map((d) => {
+    const realScore = realDomainScores?.[d.key];
+    const mockDelta = proj.domains[d.key] - proj.baselineDomains[d.key];
+    const projected = realScore != null
+      ? Math.min(100, Math.round(realScore + mockDelta))
+      : proj.domains[d.key];
+    return { ...d, projected };
+  });
   const sorted = [...domainEntries].sort((a, b) => a.projected - b.projected);
   const top3 = sorted.slice(0, 3);
 
@@ -172,7 +197,10 @@ function buildPlan(
     "Estimated age gap projections are directional estimates for demonstration purposes — not clinical predictions.",
   ];
 
-  const scoreDelta = proj.healthspan - proj.baselineHealthspan;
+  const healthDelta = proj.healthspan - proj.baselineHealthspan;
+  const baseline = realBaselineScore ?? proj.baselineHealthspan;
+  const projectedScore = Math.min(100, Math.round(baseline + healthDelta));
+  const scoreDelta = healthDelta;
 
   return {
     bottlenecks,
@@ -182,16 +210,20 @@ function buildPlan(
     physicianItems,
     retestPlan,
     safetyNotes,
-    projectedScore: proj.healthspan,
+    projectedScore,
     scoreDelta,
   };
 }
 
 const PLAN_API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
 
-function safeBuildPlan(interventions: string[]): GeneratedPlan {
+function safeBuildPlan(
+  interventions: string[],
+  realDomainScores?: Record<DomainKey, number>,
+  realBaselineScore?: number,
+): GeneratedPlan {
   try {
-    return buildPlan(interventions);
+    return buildPlan(interventions, realDomainScores, realBaselineScore);
   } catch {
     return buildPlan([]);
   }
@@ -225,6 +257,8 @@ async function tryFetchPlanFromApi(
 async function resolvePlan(
   interventions: string[],
   intake: IntakeData,
+  realDomainScores?: Record<DomainKey, number>,
+  realBaselineScore?: number,
   minMs = 1200,
 ): Promise<{ plan: GeneratedPlan; usedFallback: boolean }> {
   const started = Date.now();
@@ -238,14 +272,14 @@ async function resolvePlan(
       if (remote) {
         plan = remote;
       } else {
-        plan = safeBuildPlan(interventions);
+        plan = safeBuildPlan(interventions, realDomainScores, realBaselineScore);
         usedFallback = true;
       }
     } else {
-      plan = safeBuildPlan(interventions);
+      plan = safeBuildPlan(interventions, realDomainScores, realBaselineScore);
     }
   } catch {
-    plan = safeBuildPlan(interventions);
+    plan = safeBuildPlan(interventions, realDomainScores, realBaselineScore);
     usedFallback = apiConfigured;
   }
   const elapsed = Date.now() - started;
@@ -363,7 +397,7 @@ function formatWeeklyPlanText(
   interventions: string[],
 ): string {
   const lines: string[] = [];
-  lines.push(`MediTwin · 90-Day Healthspan Guide`);
+  lines.push(`LIFE · 90-Day Healthspan Guide`);
   lines.push(`For ${intake.name} (Age ${intake.age})`);
   lines.push(`Habits selected: ${interventions.length}`);
   lines.push(
@@ -417,7 +451,7 @@ function formatWeeklyPlanText(
 /* ------------------------------------------------------------------ */
 
 function Plan() {
-  const { interventions, intake } = useTwin();
+  const { interventions, intake, parsedBiomarkers } = useTwin();
   const [generated, setGenerated] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [seed, setSeed] = useState(0);
@@ -426,28 +460,61 @@ function Plan() {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
 
-  const draftPlan = useMemo(() => safeBuildPlan(interventions), [interventions, seed]);
-  const plan = planOverride ?? draftPlan;
-  const bioAge = useMemo(
-    () => projectBioAge(intake.age, interventions),
-    [intake.age, interventions],
+  const activeBiomarkers: Biomarker[] = parsedBiomarkers
+    ? parsedToBiomarkers(parsedBiomarkers)
+    : SAMPLE_BIOMARKERS;
+
+  // Personalized baseline from real intake + uploaded biomarkers
+  const baseBreakdown = useMemo(
+    () => computeHealthspan(intake, [], activeBiomarkers),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [intake, parsedBiomarkers],
   );
+  const realDomainScores = useMemo(
+    () => Object.fromEntries(baseBreakdown.domains.map((d) => [d.key, d.score])) as Record<DomainKey, number>,
+    [baseBreakdown],
+  );
+
+  // Dynamic bio-age: personalized baseline + intervention gap reduction
+  const proj = projectScores(interventions);
+  const interventionGapReduction = Math.max(0, INITIAL_BIO_AGE_GAP - proj.bioAgeGap);
+  const dynamicBaseGap = Math.max(0, +((100 - baseBreakdown.overall) * 0.14).toFixed(1));
+  const dynamicProjectedGap = Math.max(0, +(dynamicBaseGap - interventionGapReduction).toFixed(1));
+  const bioAge = {
+    baselineBioAge: +(intake.age + dynamicBaseGap).toFixed(1),
+    projectedBioAge: +(intake.age + dynamicProjectedGap).toFixed(1),
+    yearsImproved: +(dynamicBaseGap - dynamicProjectedGap).toFixed(1),
+  };
+  const draftPlan = useMemo(
+    () => {
+      try {
+        return buildPlan(interventions, realDomainScores, baseBreakdown.overall);
+      } catch {
+        return buildPlan([]);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [interventions, seed, baseBreakdown.overall, realDomainScores],
+  );
+  const plan = planOverride ?? draftPlan;
 
   const runPlanGeneration = useCallback(async () => {
     setGenerating(true);
     try {
-      const { plan: nextPlan, usedFallback } = await resolvePlan(interventions, intake);
+      const { plan: nextPlan, usedFallback } = await resolvePlan(
+        interventions, intake, realDomainScores, baseBreakdown.overall,
+      );
       setPlanOverride(nextPlan);
       setPlanFallback(usedFallback);
       setGenerated(true);
     } catch {
-      setPlanOverride(safeBuildPlan(interventions));
+      setPlanOverride(safeBuildPlan(interventions, realDomainScores, baseBreakdown.overall));
       setPlanFallback(true);
       setGenerated(true);
     } finally {
       setGenerating(false);
     }
-  }, [interventions, intake]);
+  }, [interventions, intake, realDomainScores, baseBreakdown.overall]);
 
   const handleGenerate = useCallback(() => {
     void runPlanGeneration();
@@ -779,7 +846,7 @@ function Plan() {
             <KpiCard
               icon={<TrendingDown className="h-5 w-5 text-[var(--neon-green)]" />}
               label={SECTION_COPY.estimatedAgeGap}
-              value={`+${Math.max(0, 7.2 - plan.scoreDelta * 0.18).toFixed(1)} yr`}
+              value={`+${Math.max(0, (100 - plan.projectedScore) * 0.14).toFixed(1)} yr`}
               sub={plan.scoreDelta > 0 ? "Friendly preview" : "No change yet"}
               color="green"
             />
