@@ -147,7 +147,7 @@ const INGREDIENTS: {
   key: DomainKey;
   title: string;
   blurb: string;
-  Icon: React.ComponentType<{ className?: string }>;
+  Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
 }[] = [
   { key: "metabolic",    title: "Blood sugar energy",   blurb: "How smoothly your body turns food into steady energy.",                    Icon: Activity   },
   { key: "cardio",       title: "Heart & circulation",  blurb: "How well your heart and vessels move with you.",                            Icon: HeartPulse },
