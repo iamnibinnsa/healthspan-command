@@ -44,13 +44,13 @@ LIFE gives you a living digital twin of your six core body systems — metabolic
 ### 1. Install frontend dependencies
 
 ```bash
-cd healthspan-command
+cd LIFE_Demo   # project root after you unzip or clone
 npm install
 ```
 
 ### 2. Configure environment variables
 
-Create **`.env.local`** in `healthspan-command/`:
+Create **`.env.local`** in `LIFE_Demo/`:
 
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
@@ -70,7 +70,7 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 Create and activate a virtual environment (recommended; only create `.venv` once):
 
 ```bash
-cd healthspan-command
+cd LIFE_Demo
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -117,7 +117,7 @@ Do **not** bundle `node_modules/`, `.venv/`, `.env`, or `.env.local` in the arch
 After extracting, each person should run setup locally:
 
 ```bash
-cd healthspan-command
+cd LIFE_Demo
 npm install
 npm run dev
 
@@ -152,7 +152,7 @@ They still need their own `.env.local`, `.env`, and Supabase migrations (steps 2
 ## Project structure
 
 ```
-healthspan-command/
+LIFE_Demo/
 ├── src/
 │   ├── routes/              # One file per page (TanStack Router)
 │   ├── lib/
