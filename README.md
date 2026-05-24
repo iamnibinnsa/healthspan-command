@@ -67,9 +67,16 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 
 ### 3. Install Python dependencies
 
+Create and activate a virtual environment (recommended; only create `.venv` once):
+
 ```bash
+cd healthspan-command
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
+
+On macOS, if `pip` is not found before activating the venv, use `python3 -m venv .venv` as above, or run `pip3 install -r requirements.txt` without a venv.
 
 ### 4. Run database migrations
 
@@ -95,11 +102,33 @@ Runs at `http://localhost:5173`
 **Terminal 2 — Backend**
 
 ```bash
-pip install -r requirements.txt
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 uvicorn main:app --reload
 ```
 
 Runs at `http://127.0.0.1:8000` · API docs at `http://127.0.0.1:8000/docs`
+
+---
+
+## Sharing or testing from a zip
+
+Do **not** bundle `node_modules/`, `.venv/`, `.env`, or `.env.local` in the archive. Native Node binaries (e.g. Rollup) break when copied between machines, and macOS may block them with a security dialog.
+
+After extracting, each person should run setup locally:
+
+```bash
+cd healthspan-command
+npm install
+npm run dev
+
+# second terminal
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+They still need their own `.env.local`, `.env`, and Supabase migrations (steps 2 and 4 above).
 
 ---
 
