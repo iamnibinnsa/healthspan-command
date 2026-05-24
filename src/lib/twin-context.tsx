@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -8,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "@supabase/supabase-js";
+import { fetchScoreCompute, type MediTwinScore } from "./scoreApi";
 import { supabase, type SupabaseProfile } from "./supabase";
 
 export interface ParsedBiomarkers {
@@ -90,6 +92,10 @@ interface Ctx {
   setLabsLoaded: (b: boolean) => void;
   parsedBiomarkers: ParsedBiomarkers | null;
   setParsedBiomarkers: (data: ParsedBiomarkers | null) => void;
+  score: MediTwinScore | null;
+  scoreLoading: boolean;
+  scoreError: string | null;
+  computeScore: (biomarkersOverride?: ParsedBiomarkers) => Promise<MediTwinScore | null>;
   interventions: string[];
   toggleIntervention: (id: string) => void;
   setInterventions: (ids: string[]) => void;
@@ -102,8 +108,41 @@ export function TwinProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
   const [intake, setIntakeState] = useState<IntakeData>(defaultIntake);
   const [labsLoaded, setLabsLoaded] = useState(false);
-  const [parsedBiomarkers, setParsedBiomarkers] = useState<ParsedBiomarkers | null>(null);
+  const [parsedBiomarkers, setParsedBiomarkersState] = useState<ParsedBiomarkers | null>(null);
+  const [score, setScore] = useState<MediTwinScore | null>(null);
+  const [scoreLoading, setScoreLoading] = useState(false);
+  const [scoreError, setScoreError] = useState<string | null>(null);
   const [interventions, setInterventions] = useState<string[]>([]);
+
+  const setParsedBiomarkers = useCallback((data: ParsedBiomarkers | null) => {
+    setParsedBiomarkersState(data);
+    if (!data) setScore(null);
+  }, []);
+
+  const computeScore = useCallback(async (biomarkersOverride?: ParsedBiomarkers) => {
+    const biomarkers = biomarkersOverride ?? parsedBiomarkers;
+    if (!biomarkers) return null;
+
+    setScoreLoading(true);
+    setScoreError(null);
+    try {
+      const result = await fetchScoreCompute({
+        userId: user?.id ?? null,
+        intake,
+        biomarkers,
+        interventions,
+      });
+      setScore(result);
+      return result;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Score compute failed";
+      setScoreError(msg);
+      console.error("Score compute error:", msg);
+      return null;
+    } finally {
+      setScoreLoading(false);
+    }
+  }, [intake, interventions, parsedBiomarkers, user?.id]);
 
   // Track the last userId whose profile was loaded so we don't re-fetch
   // when unrelated state changes trigger a re-render.
@@ -123,7 +162,9 @@ export function TwinProvider({ children }: { children: ReactNode }) {
           // Signed out — reset to defaults
           setIntakeState(defaultIntake);
           setLabsLoaded(false);
-          setParsedBiomarkers(null);
+          setParsedBiomarkersState(null);
+          setScore(null);
+          setScoreError(null);
           setInterventions([]);
           loadedForRef.current = null;
         }
@@ -176,6 +217,10 @@ export function TwinProvider({ children }: { children: ReactNode }) {
       setLabsLoaded,
       parsedBiomarkers,
       setParsedBiomarkers,
+      score,
+      scoreLoading,
+      scoreError,
+      computeScore,
       interventions,
       setInterventions,
       toggleIntervention: (id) =>
@@ -184,11 +229,13 @@ export function TwinProvider({ children }: { children: ReactNode }) {
         ),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, authLoading, intake, labsLoaded, parsedBiomarkers, interventions]
+    [user, authLoading, intake, labsLoaded, parsedBiomarkers, score, scoreLoading, scoreError, computeScore, interventions]
   );
 
   return <TwinCtx.Provider value={value}>{children}</TwinCtx.Provider>;
 }
+
+export type { MediTwinScore };
 
 export function useTwin() {
   const ctx = useContext(TwinCtx);

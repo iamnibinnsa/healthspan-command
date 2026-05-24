@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
@@ -69,26 +70,30 @@ function readinessLabel(score: number) {
 }
 
 function Dashboard() {
-  const { interventions, intake, parsedBiomarkers } = useTwin();
+  const {
+    interventions,
+    intake,
+    parsedBiomarkers,
+    score,
+    scoreLoading,
+    scoreError,
+    computeScore,
+  } = useTwin();
+
+  useEffect(() => {
+    if (parsedBiomarkers && !score && !scoreLoading) {
+      void computeScore();
+    }
+  }, [parsedBiomarkers, score, scoreLoading, computeScore]);
+
   const projected = projectScores(interventions);
-  const breakdown = computeHealthspan(intake, interventions);
-  const domains = INITIAL_DOMAINS.map((d) => ({ ...d, score: projected.domains[d.key] }));
-  const biomarkers: Biomarker[] = parsedBiomarkers
-    ? [
-        { name: "HbA1c", value: parsedBiomarkers.hba1c, unit: "%", optimal: "< 5.4", status: band(parsedBiomarkers.hba1c, 5.4, 6) },
-        { name: "Fasting Glucose", value: parsedBiomarkers.fasting_glucose, unit: "mg/dL", optimal: "70-95", status: band(parsedBiomarkers.fasting_glucose, 95, 110) },
-        { name: "ApoB", value: parsedBiomarkers.apob, unit: "mg/dL", optimal: "< 80", status: band(parsedBiomarkers.apob, 80, 100) },
-        { name: "LDL-C", value: parsedBiomarkers.ldl_c, unit: "mg/dL", optimal: "< 100", status: band(parsedBiomarkers.ldl_c, 100, 130) },
-        { name: "HDL-C", value: parsedBiomarkers.hdl_c, unit: "mg/dL", optimal: "> 50", status: reverseBand(parsedBiomarkers.hdl_c, 50, 40) },
-        { name: "Triglycerides", value: parsedBiomarkers.triglycerides, unit: "mg/dL", optimal: "< 100", status: band(parsedBiomarkers.triglycerides, 100, 175) },
-        { name: "hs-CRP", value: parsedBiomarkers.hs_crp, unit: "mg/L", optimal: "< 1.0", status: band(parsedBiomarkers.hs_crp, 1, 3) },
-        { name: "Vitamin D", value: parsedBiomarkers.vitamin_d, unit: "ng/mL", optimal: "40-60", status: reverseBand(parsedBiomarkers.vitamin_d, 40, 25) },
-        { name: "Resting HR", value: parsedBiomarkers.resting_hr, unit: "bpm", optimal: "55-65", status: band(parsedBiomarkers.resting_hr, 65, 75) },
-        { name: "HRV", value: parsedBiomarkers.hrv, unit: "ms", optimal: "> 50", status: reverseBand(parsedBiomarkers.hrv, 50, 35) },
-        { name: "Sleep Duration", value: parsedBiomarkers.sleep_duration, unit: "hr/night", optimal: "7-8.5", status: reverseBand(parsedBiomarkers.sleep_duration, 7, 6) },
-        { name: "VO2 max", value: parsedBiomarkers.vo2_max, unit: "ml/kg/min", optimal: "> 42", status: reverseBand(parsedBiomarkers.vo2_max, 42, 35) },
-      ]
-    : SAMPLE_BIOMARKERS;
+  const fallbackBreakdown = computeHealthspan(intake, interventions);
+  const healthspan = score?.overallHealthspanScore ?? projected.healthspan;
+  const bioAgeGap = score?.biologicalAgeGap ?? projected.bioAgeGap;
+  const chronologicalAge = score?.chronologicalAge ?? intake.age;
+  const breakdown = score?.breakdown ?? fallbackBreakdown;
+  const domains = score?.domains ?? INITIAL_DOMAINS.map((d) => ({ ...d, score: projected.domains[d.key] }));
+  const biomarkers: Biomarker[] = score?.biomarkers ?? SAMPLE_BIOMARKERS;
 
   const radarData = domains.map((d) => ({ domain: d.short, score: d.score, fullMark: 100 }));
   const sorted = [...domains].sort((a, b) => b.score - a.score);
@@ -109,8 +114,19 @@ function Dashboard() {
         </div>
         <h1 className="text-4xl font-display font-semibold mt-1">Your first healthspan insights</h1>
         <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          Here's what your digital twin noticed — explained simply, with next steps you can explore.
+          {score?.summary ??
+            "Here's what your digital twin noticed — explained simply, with next steps you can explore."}
         </p>
+        {scoreLoading && (
+          <p className="text-xs font-mono mt-2" style={{ color: "var(--friendly-teal)" }}>
+            Computing your healthspan score…
+          </p>
+        )}
+        {scoreError && (
+          <p className="text-xs mt-2 text-[var(--neon-red)]">
+            Score unavailable ({scoreError}). Showing local estimate.
+          </p>
+        )}
       </div>
 
       {/* Twin Summary hero */}
@@ -180,13 +196,13 @@ function Dashboard() {
                 Twin readiness score
               </div>
               <div className="-my-2">
-                <HealthGauge score={projected.healthspan} />
+                <HealthGauge score={healthspan} />
               </div>
               <div
                 className="text-center text-[12px] font-medium"
                 style={{ color: "var(--friendly-teal)" }}
               >
-                {readinessLabel(projected.healthspan)}
+                {readinessLabel(healthspan)}
               </div>
               <div className="text-center text-[10px] text-muted-foreground mt-1">
                 Prototype estimate — not a clinical score.
@@ -202,11 +218,11 @@ function Dashboard() {
                   className="font-display text-5xl"
                   style={{ color: "var(--friendly-amber)" }}
                 >
-                  +{projected.bioAgeGap}
+                  +{bioAgeGap.toFixed(1)}
                   <span className="text-xl text-muted-foreground font-sans ml-1">yrs</span>
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-1">
-                  vs chronological age ({intake.age})
+                  vs chronological age ({chronologicalAge})
                 </div>
               </div>
               <div className="text-[10px] text-muted-foreground leading-snug">
@@ -231,7 +247,7 @@ function Dashboard() {
         </div>
         <div className="grid md:grid-cols-3 gap-4">
           {opportunities.map((o) => {
-            const status = o.score >= 75 ? "optimal" : o.score >= 60 ? "watch" : "priority";
+            const status = o.status ?? (o.score >= 75 ? "optimal" : o.score >= 60 ? "watch" : "priority");
             const tone =
               status === "optimal"
                 ? "var(--friendly-mint)"
@@ -420,16 +436,4 @@ function Dashboard() {
       </div>
     </div>
   );
-}
-
-function band(value: number, optimalCutoff: number, watchCutoff: number): Status {
-  if (value < optimalCutoff) return "optimal";
-  if (value < watchCutoff) return "watch";
-  return "priority";
-}
-
-function reverseBand(value: number, optimalFloor: number, watchFloor: number): Status {
-  if (value >= optimalFloor) return "optimal";
-  if (value >= watchFloor) return "watch";
-  return "priority";
 }

@@ -52,7 +52,7 @@ type UploadApiResponse = {
 const AI_API_BASE = import.meta.env.VITE_AI_API_BASE ?? "http://127.0.0.1:8000";
 
 function LabUpload() {
-  const { setLabsLoaded, setParsedBiomarkers, user } = useTwin();
+  const { setLabsLoaded, setParsedBiomarkers, computeScore, user } = useTwin();
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [stage, setStage] = useState(0);
@@ -82,7 +82,9 @@ function LabUpload() {
         throw new Error(`Upload failed (${response.status})`);
       }
       const data = (await response.json()) as UploadApiResponse;
-      setParsedBiomarkers(data.parsed.biomarkers);
+      const biomarkers = data.parsed.biomarkers;
+      setParsedBiomarkers(biomarkers);
+      await computeScore(biomarkers);
 
       if (user?.id) {
         const { error: dbError } = await supabase.from("lab_reports").insert({
