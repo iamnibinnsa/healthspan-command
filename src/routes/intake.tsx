@@ -13,6 +13,19 @@ export const Route = createFileRoute("/intake")({
   component: Intake,
 });
 
+/** Empty field → 0 in state; UI shows "" when 0 (avoids `+""` sticking as 0 in number inputs). */
+function ageFromInput(raw: string): number {
+  const digits = raw.replace(/\D/g, "");
+  if (digits === "") return 0;
+  const n = Number.parseInt(digits, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function clampAge(age: number): number {
+  if (age <= 0) return 0;
+  return Math.min(120, Math.max(1, age));
+}
+
 /* ------------------------------------------------------------------ */
 /*  Quest configuration                                                 */
 /* ------------------------------------------------------------------ */
@@ -209,12 +222,17 @@ function Step1({ draft, setDraft }: StepProps) {
         </Field>
         <Field label="Age">
           <input
-            type="number"
-            min={1}
-            max={120}
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="e.g. 48"
             className="w-full bg-input rounded-lg px-4 py-3 text-sm outline-none focus:neon-border-blue transition"
-            value={draft.age}
-            onChange={(e) => setDraft({ ...draft, age: +e.target.value })}
+            value={draft.age > 0 ? String(draft.age) : ""}
+            onChange={(e) => setDraft({ ...draft, age: ageFromInput(e.target.value) })}
+            onBlur={() => {
+              const clamped = clampAge(draft.age);
+              if (clamped !== draft.age) setDraft({ ...draft, age: clamped });
+            }}
           />
         </Field>
         <Field label="Sex">
