@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
@@ -157,21 +158,29 @@ const INGREDIENTS: {
 ];
 
 function Dashboard() {
-  const { interventions, intake } = useTwin();
+  const { interventions, intake, parsedBiomarkers, score, scoreLoading, scoreError, computeScore } = useTwin();
   const projected = projectScores(interventions);
   const bioAge = projectBioAge(intake.age, interventions);
   const bioBand = bandFromGap(bioAge.projectedGap);
-  const breakdown = computeHealthspan(intake, interventions);
-  const domains = INITIAL_DOMAINS.map((d) => ({ ...d, score: projected.domains[d.key] }));
+  const fallbackBreakdown = computeHealthspan(intake, interventions);
+  const breakdown = score?.breakdown ?? fallbackBreakdown;
+  const fallbackDomains = INITIAL_DOMAINS.map((d) => ({ ...d, score: projected.domains[d.key] }));
+  const domains = score?.domains ?? fallbackDomains;
+
+  const biomarkerKey = parsedBiomarkers ? JSON.stringify(parsedBiomarkers) : null;
+  useEffect(() => {
+    if (!biomarkerKey) return;
+    void computeScore();
+  }, [biomarkerKey, computeScore]);
 
   const radarData = domains.map((d) => ({ domain: d.short, score: d.score, fullMark: 100 }));
   const bottlenecks = [...domains].sort((a, b) => a.score - b.score).slice(0, 3);
   const topStrong = [...domains].sort((a, b) => b.score - a.score).slice(0, 2);
 
-  const firstName = intake.name.split(" ")[0];
+  const firstName = (intake.name || "Friend").split(" ")[0];
 
-  // Friendly, score-driven readiness label for the gauge card.
-  const hs = projected.healthspan;
+  // Use backend score if available, fall back to local projection
+  const hs = score?.overallHealthspanScore ?? projected.healthspan;
   const readinessLabel =
     hs >= 75 ? "Strong starting point" : hs >= 60 ? "Good starting point" : "Lots of room to improve";
   const readinessColor =
@@ -186,10 +195,16 @@ function Dashboard() {
         </div>
         <h1 className="text-4xl font-display font-semibold mt-1">Your first healthspan insights</h1>
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
-          Here&rsquo;s what your digital twin noticed &mdash; explained simply, with next steps you can explore.
+          {score?.summary ?? "Here's what your digital twin noticed — explained simply, with next steps you can explore."}
           {" "}
           <span className="italic">{MICROCOPY.educationalSignals}</span>
         </p>
+        {scoreLoading && (
+          <p className="text-xs font-mono mt-2 text-[var(--neon-blue)]">Computing your healthspan score…</p>
+        )}
+        {scoreError && (
+          <p className="text-xs mt-2 text-[var(--neon-red)]">Score unavailable ({scoreError}). Showing local estimate.</p>
+        )}
       </div>
 
       {/* Twin Summary hero */}

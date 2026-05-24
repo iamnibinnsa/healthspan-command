@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -8,7 +9,23 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "@supabase/supabase-js";
+import { fetchScoreCompute, type MediTwinScore } from "./scoreApi";
 import { supabase, type SupabaseProfile } from "./supabase";
+
+export interface ParsedBiomarkers {
+  hba1c: number;
+  fasting_glucose: number;
+  apob: number;
+  ldl_c: number;
+  hdl_c: number;
+  triglycerides: number;
+  hs_crp: number;
+  vitamin_d: number;
+  resting_hr: number;
+  hrv: number;
+  sleep_duration: number;
+  vo2_max: number;
+}
 
 export interface IntakeData {
   name: string;
@@ -24,30 +41,30 @@ export interface IntakeData {
 }
 
 const defaultIntake: IntakeData = {
-  name: "Alex Morgan",
-  age: 48,
+  name: "",
+  age: 0,
   sex: "Male",
-  goals: ["Longevity", "Energy"],
-  sleepHours: 5.8,
-  exerciseFreq: 2,
-  stress: 7,
+  goals: [],
+  sleepHours: 7,
+  exerciseFreq: 3,
+  stress: 5,
   diet: 5,
-  familyHistory: ["Cardiovascular disease"],
-  wearable: "Apple Watch",
+  familyHistory: [],
+  wearable: "None",
 };
 
 function profileToIntake(p: SupabaseProfile): IntakeData {
   return {
-    name: p.name ?? defaultIntake.name,
-    age: p.age ?? defaultIntake.age,
-    sex: p.sex ?? defaultIntake.sex,
-    goals: p.goals ?? defaultIntake.goals,
-    sleepHours: p.sleep_hours ?? defaultIntake.sleepHours,
-    exerciseFreq: p.exercise_freq ?? defaultIntake.exerciseFreq,
-    stress: p.stress ?? defaultIntake.stress,
-    diet: p.diet ?? defaultIntake.diet,
-    familyHistory: p.family_history ?? defaultIntake.familyHistory,
-    wearable: p.wearable ?? defaultIntake.wearable,
+    name: p.name ?? "",
+    age: p.age ?? 0,
+    sex: p.sex ?? "Male",
+    goals: p.goals ?? [],
+    sleepHours: p.sleep_hours ?? 7,
+    exerciseFreq: p.exercise_freq ?? 3,
+    stress: p.stress ?? 5,
+    diet: p.diet ?? 5,
+    familyHistory: p.family_history ?? [],
+    wearable: p.wearable ?? "None",
   };
 }
 
@@ -73,6 +90,12 @@ interface Ctx {
   setIntake: (d: IntakeData) => void;
   labsLoaded: boolean;
   setLabsLoaded: (b: boolean) => void;
+  parsedBiomarkers: ParsedBiomarkers | null;
+  setParsedBiomarkers: (data: ParsedBiomarkers | null) => void;
+  score: MediTwinScore | null;
+  scoreLoading: boolean;
+  scoreError: string | null;
+  computeScore: (biomarkersOverride?: ParsedBiomarkers) => Promise<MediTwinScore | null>;
   interventions: string[];
   toggleIntervention: (id: string) => void;
   setInterventions: (ids: string[]) => void;
@@ -85,8 +108,45 @@ export function TwinProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
   const [intake, setIntakeState] = useState<IntakeData>(defaultIntake);
   const [labsLoaded, setLabsLoaded] = useState(false);
+  const [parsedBiomarkers, setParsedBiomarkersState] = useState<ParsedBiomarkers | null>(null);
+  const [score, setScore] = useState<MediTwinScore | null>(null);
+  const [scoreLoading, setScoreLoading] = useState(false);
+  const [scoreError, setScoreError] = useState<string | null>(null);
   const [interventions, setInterventions] = useState<string[]>([]);
 
+  const setParsedBiomarkers = useCallback((data: ParsedBiomarkers | null) => {
+    setParsedBiomarkersState(data);
+    setScore(null);
+    setScoreError(null);
+  }, []);
+
+  const computeScore = useCallback(async (biomarkersOverride?: ParsedBiomarkers) => {
+    const biomarkers = biomarkersOverride ?? parsedBiomarkers;
+    if (!biomarkers) return null;
+
+    setScoreLoading(true);
+    setScoreError(null);
+    try {
+      const result = await fetchScoreCompute({
+        userId: user?.id ?? null,
+        intake,
+        biomarkers,
+        interventions,
+      });
+      setScore(result);
+      return result;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Score compute failed";
+      setScoreError(msg);
+      console.error("Score compute error:", msg);
+      return null;
+    } finally {
+      setScoreLoading(false);
+    }
+  }, [intake, interventions, parsedBiomarkers, user?.id]);
+
+  // Track the last userId whose profile was loaded so we don't re-fetch
+  // when unrelated state changes trigger a re-render.
   const loadedForRef = useRef<string | null>(null);
 
   // ── Auth listener ──────────────────────────────────────────────────────────
@@ -100,8 +160,12 @@ export function TwinProvider({ children }: { children: ReactNode }) {
       (_event, session) => {
         setUser(session?.user ?? null);
         if (!session?.user) {
+          // Signed out — reset to defaults
           setIntakeState(defaultIntake);
           setLabsLoaded(false);
+          setParsedBiomarkersState(null);
+          setScore(null);
+          setScoreError(null);
           setInterventions([]);
           loadedForRef.current = null;
         }
@@ -135,6 +199,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
   const setIntake = (d: IntakeData) => {
     setIntakeState(d);
     if (!user) return;
+    // Fire-and-forget UPSERT (no await — UI stays snappy)
     (supabase as any)
       .from("profiles")
       .upsert({ id: user.id, ...intakeToProfile(d) })
@@ -151,6 +216,12 @@ export function TwinProvider({ children }: { children: ReactNode }) {
       setIntake,
       labsLoaded,
       setLabsLoaded,
+      parsedBiomarkers,
+      setParsedBiomarkers,
+      score,
+      scoreLoading,
+      scoreError,
+      computeScore,
       interventions,
       setInterventions,
       toggleIntervention: (id) =>
@@ -159,11 +230,13 @@ export function TwinProvider({ children }: { children: ReactNode }) {
         ),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, authLoading, intake, labsLoaded, interventions]
+    [user, authLoading, intake, labsLoaded, parsedBiomarkers, score, scoreLoading, scoreError, computeScore, interventions]
   );
 
   return <TwinCtx.Provider value={value}>{children}</TwinCtx.Provider>;
 }
+
+export type { MediTwinScore };
 
 export function useTwin() {
   const ctx = useContext(TwinCtx);

@@ -1,9 +1,9 @@
 fastapi
 uvicorn[standard]
 pydantic
+python-dotenv
 openai
 anthropic
 pypdf
 python-multipart
 supabase
-python-dotenv
