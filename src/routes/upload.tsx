@@ -30,6 +30,7 @@ type UploadApiResponse = {
   file_name: string;
   extracted_characters: number;
   used_fallback: boolean;
+  parse_source?: "llm" | "regex" | "fallback";
   parsed: {
     person_name: string;
     biomarkers: {
@@ -51,6 +52,11 @@ type UploadApiResponse = {
 
 const AI_API_BASE = import.meta.env.VITE_AI_API_BASE ?? "http://127.0.0.1:8000";
 
+const SAMPLE_ALEX_LAB_TEXT =
+  "Alex Morgan labs: HbA1c 5.8%, fasting glucose 104 mg/dL, ApoB 112 mg/dL, " +
+  "LDL-C 142 mg/dL, HDL-C 45 mg/dL, triglycerides 168 mg/dL, hs-CRP 3.2 mg/L, " +
+  "Vitamin D 22 ng/mL, resting HR 74 bpm, HRV 32 ms, sleep 5.8 hr, VO2 max 32.";
+
 function LabUpload() {
   const { setLabsLoaded, setParsedBiomarkers, computeScore, user } = useTwin();
   const navigate = useNavigate();
@@ -58,6 +64,57 @@ function LabUpload() {
   const [stage, setStage] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const applyParsedResult = async (
+    biomarkers: UploadApiResponse["parsed"]["biomarkers"],
+    meta: { parse_source?: string; person_name?: string; file_name: string },
+  ) => {
+    // #region agent log
+    fetch("http://127.0.0.1:7403/ingest/9ccd34db-a573-4231-aa3b-6b8148010879", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "014a59" },
+      body: JSON.stringify({
+        sessionId: "014a59",
+        location: "upload.tsx:applyParsedResult",
+        message: "applying parsed biomarkers",
+        data: {
+          file_name: meta.file_name,
+          parse_source: meta.parse_source,
+          person_name: meta.person_name,
+          hba1c: biomarkers.hba1c,
+          apob: biomarkers.apob,
+        },
+        hypothesisId: "D",
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    setParsedBiomarkers(biomarkers);
+    const scoreResult = await computeScore(biomarkers);
+
+    // #region agent log
+    fetch("http://127.0.0.1:7403/ingest/9ccd34db-a573-4231-aa3b-6b8148010879", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "014a59" },
+      body: JSON.stringify({
+        sessionId: "014a59",
+        location: "upload.tsx:applyParsedResult",
+        message: "score computed after upload",
+        data: {
+          score_ok: Boolean(scoreResult),
+          overall: scoreResult?.overallHealthspanScore ?? null,
+          hba1c: scoreResult?.biomarkers?.find((b) => b.name === "HbA1c")?.value ?? null,
+        },
+        hypothesisId: "E",
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    setLabsLoaded(true);
+    navigate({ to: "/dashboard" });
+  };
 
   const run = async (file: File) => {
     setFileName(file.name);
@@ -83,8 +140,6 @@ function LabUpload() {
       }
       const data = (await response.json()) as UploadApiResponse;
       const biomarkers = data.parsed.biomarkers;
-      setParsedBiomarkers(biomarkers);
-      await computeScore(biomarkers);
 
       if (user?.id) {
         const { error: dbError } = await supabase.from("lab_reports").insert({
@@ -100,8 +155,11 @@ function LabUpload() {
         }
       }
 
-      setLabsLoaded(true);
-      navigate({ to: "/dashboard" });
+      await applyParsedResult(biomarkers, {
+        parse_source: data.parse_source,
+        person_name: data.parsed.person_name,
+        file_name: data.file_name,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Upload failed. Please retry.";
       setError(msg);
@@ -146,23 +204,35 @@ function LabUpload() {
 
           <button
             onClick={() => {
-              const mockPdfContent = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] >>
-endobj
-trailer
-<< /Root 1 0 R >>
-%%EOF`;
-              const mockFile = new File([mockPdfContent], "alex_morgan_labs_2024.pdf", {
-                type: "application/pdf",
-              });
-              void run(mockFile);
+              void (async () => {
+                setFileName("alex_morgan_labs_2024.pdf");
+                setError(null);
+                setProcessing(true);
+                setStage(0);
+                const stageMs = 850;
+                [1, 2, 3, 4].forEach((i) => setTimeout(() => setStage(i), i * stageMs));
+                try {
+                  const response = await fetch(`${AI_API_BASE}/api/parse`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ raw_text: SAMPLE_ALEX_LAB_TEXT }),
+                  });
+                  if (!response.ok) {
+                    throw new Error(`Sample parse failed (${response.status})`);
+                  }
+                  const parsed = (await response.json()) as UploadApiResponse["parsed"];
+                  await applyParsedResult(parsed.biomarkers, {
+                    parse_source: "regex",
+                    person_name: parsed.person_name,
+                    file_name: "alex_morgan_labs_2024.pdf",
+                  });
+                } catch (e) {
+                  const msg = e instanceof Error ? e.message : "Sample load failed.";
+                  setError(msg);
+                  setProcessing(false);
+                  setStage(0);
+                }
+              })();
             }}
             className="w-full glass rounded-2xl p-6 flex items-center gap-4 hover:neon-border-green transition group"
           >

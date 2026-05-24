@@ -4,13 +4,16 @@ import os
 import re
 from datetime import datetime, timezone
 from io import BytesIO
+from pathlib import Path
 from uuid import uuid4
 from typing import Any, Literal
 
 from dotenv import load_dotenv
-load_dotenv()  # loads .env in the project root (if present)
 
-from fastapi import FastAPI, File, Form, UploadFile
+_PROJECT_ROOT = Path(__file__).resolve().parent
+load_dotenv(_PROJECT_ROOT / ".env")
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from pypdf import PdfReader
@@ -34,6 +37,35 @@ except Exception:  # pragma: no cover - optional import at runtime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("healthspan-ai-brain")
+
+_DEBUG_LOG_PATH = _PROJECT_ROOT / ".cursor" / "debug-014a59.log"
+ParseSource = Literal["llm", "regex", "fallback"]
+
+
+def _agent_log(location: str, message: str, data: dict[str, Any], hypothesis_id: str) -> None:
+    # #region agent log
+    try:
+        payload = {
+            "sessionId": "014a59",
+            "location": location,
+            "message": message,
+            "data": data,
+            "hypothesisId": hypothesis_id,
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
+        }
+        _DEBUG_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload) + "\n")
+    except Exception:
+        pass
+    # #endregion
+
+
+SAMPLE_ALEX_LAB_TEXT = (
+    "Alex Morgan labs: HbA1c 5.8%, fasting glucose 104 mg/dL, ApoB 112 mg/dL, "
+    "LDL-C 142 mg/dL, HDL-C 45 mg/dL, triglycerides 168 mg/dL, hs-CRP 3.2 mg/L, "
+    "Vitamin D 22 ng/mL, resting HR 74 bpm, HRV 32 ms, sleep 5.8 hr, VO2 max 32."
+)
 
 
 app = FastAPI(
@@ -84,6 +116,7 @@ class LabsUploadResponse(BaseModel):
     file_name: str
     extracted_characters: int
     used_fallback: bool
+    parse_source: ParseSource = "fallback"
     parsed: ParseResponse
 
 
@@ -149,24 +182,85 @@ class PlanResponse(BaseModel):
     disclaimers: list[str]
 
 
-def fallback_parse_response() -> ParseResponse:
-    return ParseResponse(
-        person_name="Alex Morgan",
-        biomarkers=Biomarkers(
-            hba1c=5.8,
-            fasting_glucose=104,
-            apob=112,
-            ldl_c=142,
-            hdl_c=45,
-            triglycerides=168,
-            hs_crp=3.2,
-            vitamin_d=22,
-            resting_hr=74,
-            hrv=32,
-            sleep_duration=5.8,
-            vo2_max=32,
-        ),
+def _alex_biomarkers() -> Biomarkers:
+    return Biomarkers(
+        hba1c=5.8,
+        fasting_glucose=104,
+        apob=112,
+        ldl_c=142,
+        hdl_c=45,
+        triglycerides=168,
+        hs_crp=3.2,
+        vitamin_d=22,
+        resting_hr=74,
+        hrv=32,
+        sleep_duration=5.8,
+        vo2_max=32,
     )
+
+
+def fallback_parse_response() -> ParseResponse:
+    return ParseResponse(person_name="Alex Morgan", biomarkers=_alex_biomarkers())
+
+
+_BIOMARKER_REGEX: list[tuple[str, list[str]]] = [
+    ("hba1c", [r"(?:HbA1c|Hemoglobin A1c)[^\d]{0,40}([\d.]+)\s*%?", r"hba1c[:\s]+([\d.]+)\s*%?"]),
+    ("fasting_glucose", [r"(?:Fasting Glucose|fasting glucose)[^\d]{0,40}([\d.]+)", r"fasting_glucose[:\s]+([\d.]+)"]),
+    ("apob", [r"(?:ApoB|Apolipoprotein B)[^\d]{0,40}([\d.]+)", r"apob[:\s]+([\d.]+)"]),
+    ("ldl_c", [r"(?:LDL[- ]C|LDL Cholesterol)[^\d]{0,40}([\d.]+)", r"ldl_c[:\s]+([\d.]+)"]),
+    ("hdl_c", [r"(?:HDL[- ]C|HDL Cholesterol)[^\d]{0,40}([\d.]+)", r"hdl_c[:\s]+([\d.]+)"]),
+    ("triglycerides", [r"Triglycerides[^\d]{0,40}([\d.]+)", r"triglycerides[:\s]+([\d.]+)"]),
+    ("hs_crp", [r"(?:hs-CRP|High-Sensitivity CRP)[^\d]{0,40}([\d.]+)", r"hs_crp[:\s]+([\d.]+)"]),
+    ("vitamin_d", [r"(?:Vitamin D|25-Hydroxy Vitamin D)[^\d]{0,40}([\d.]+)", r"vitamin_d[:\s]+([\d.]+)"]),
+    ("resting_hr", [r"(?:Resting HR|Resting Heart Rate)[^\d]{0,40}([\d.]+)", r"resting_hr[:\s]+([\d.]+)"]),
+    ("hrv", [r"(?:HRV|Heart Rate Variability)[^\d]{0,40}([\d.]+)", r"hrv[:\s]+([\d.]+)"]),
+    ("sleep_duration", [r"(?:Sleep Duration|Average Sleep Duration|sleep duration)[^\d]{0,40}([\d.]+)", r"sleep[:\s]+([\d.]+)\s*hr", r"sleep_duration[:\s]+([\d.]+)"]),
+    ("vo2_max", [r"(?:VO2 max|VO2 Max)[^\d]{0,40}([\d.]+)", r"vo2_max[:\s]+([\d.]+)"]),
+]
+
+_NAME_REGEX = [
+    r"(?:Patient|Name):\s*([A-Za-z .'-]+?)(?:\n|Date|Age|Sex|$)",
+    r"Patient:\s*([A-Za-z .'-]+)",
+    r"^([A-Za-z .'-]+)\s+labs:",
+]
+
+
+def _first_regex_match(text: str, patterns: list[str]) -> float | None:
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            try:
+                return float(match.group(1))
+            except ValueError:
+                continue
+    return None
+
+
+def regex_parse_labs_text(raw_text: str) -> ParseResponse | None:
+    values: dict[str, float] = {}
+    for key, patterns in _BIOMARKER_REGEX:
+        found = _first_regex_match(raw_text, patterns)
+        if found is not None:
+            values[key] = found
+
+    required_keys = [key for key, _ in _BIOMARKER_REGEX]
+    if len(values) < len(required_keys):
+        _agent_log(
+            "main.py:regex_parse_labs_text",
+            "regex incomplete",
+            {"found_count": len(values), "missing": [k for k in required_keys if k not in values]},
+            "B",
+        )
+        return None
+
+    person_name = "Unknown Patient"
+    for pattern in _NAME_REGEX:
+        match = re.search(pattern, raw_text, flags=re.IGNORECASE)
+        if match:
+            person_name = match.group(1).strip()
+            break
+
+    return ParseResponse(person_name=person_name, biomarkers=Biomarkers.model_validate(values))
 
 
 def fallback_plan_response(name: str) -> PlanResponse:
@@ -358,7 +452,7 @@ def call_llm_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
     return _call_anthropic_json(system_prompt, user_prompt)
 
 
-def parse_labs_text(raw_text: str) -> ParseResponse:
+def parse_labs_text(raw_text: str) -> tuple[ParseResponse, ParseSource]:
     system_prompt = """
 You are a clinical data extraction engine. Return only valid JSON.
 Task:
@@ -387,12 +481,79 @@ Output JSON shape exactly:
 
     user_prompt = f"Lab text:\n{raw_text}"
 
+    # #region agent log
+    _agent_log(
+        "main.py:parse_labs_text",
+        "parse entry",
+        {
+            "text_len": len(raw_text),
+            "text_excerpt": raw_text[:120],
+            "has_anthropic_key": bool(os.getenv("ANTHROPIC_API_KEY")),
+            "has_openai_key": bool(os.getenv("OPENAI_API_KEY")),
+        },
+        "C",
+    )
+    # #endregion
+
     try:
         raw = call_llm_json(system_prompt, user_prompt)
-        return ParseResponse.model_validate(raw)
+        result = ParseResponse.model_validate(raw)
+        # #region agent log
+        _agent_log(
+            "main.py:parse_labs_text",
+            "parse llm success",
+            {
+                "parse_source": "llm",
+                "person_name": result.person_name,
+                "hba1c": result.biomarkers.hba1c,
+                "apob": result.biomarkers.apob,
+            },
+            "B",
+        )
+        # #endregion
+        return result, "llm"
     except Exception as exc:
-        logger.exception("Parse endpoint failed; serving fallback. Error: %s", exc)
-        return fallback_parse_response()
+        logger.exception("Parse endpoint LLM failed; trying regex. Error: %s", exc)
+        # #region agent log
+        _agent_log(
+            "main.py:parse_labs_text",
+            "parse llm failed",
+            {"error_type": type(exc).__name__, "error": str(exc)[:240]},
+            "B",
+        )
+        # #endregion
+
+    regex_result = regex_parse_labs_text(raw_text)
+    if regex_result is not None:
+        # #region agent log
+        _agent_log(
+            "main.py:parse_labs_text",
+            "parse regex success",
+            {
+                "parse_source": "regex",
+                "person_name": regex_result.person_name,
+                "hba1c": regex_result.biomarkers.hba1c,
+                "apob": regex_result.biomarkers.apob,
+            },
+            "B",
+        )
+        # #endregion
+        return regex_result, "regex"
+
+    fallback = fallback_parse_response()
+    # #region agent log
+    _agent_log(
+        "main.py:parse_labs_text",
+        "parse fallback used",
+        {
+            "parse_source": "fallback",
+            "person_name": fallback.person_name,
+            "hba1c": fallback.biomarkers.hba1c,
+        },
+        "B",
+    )
+    # #endregion
+    return fallback, "fallback"
 
 
 def store_lab_record(record: LabRecord) -> None:
@@ -403,7 +564,7 @@ def store_lab_record(record: LabRecord) -> None:
 
 @app.post("/api/parse", response_model=ParseResponse)
 def parse_labs(payload: ParseRequest) -> ParseResponse:
-    parsed = parse_labs_text(payload.raw_text)
+    parsed, _parse_source = parse_labs_text(payload.raw_text)
     record = LabRecord(
         report_id=payload.report_id or f"rep_{uuid4().hex[:12]}",
         user_id=payload.user_id,
@@ -430,6 +591,7 @@ async def upload_and_parse_labs(
     report_id = f"rep_{uuid4().hex[:12]}"
     file_name = file.filename or "lab_report.pdf"
     used_fallback = False
+    parse_source: ParseSource = "fallback"
 
     try:
         raw_bytes = await file.read()
@@ -439,15 +601,40 @@ async def upload_and_parse_labs(
         if len(raw_text) < 20:
             raise ValueError("PDF text extraction produced too little text.")
     except Exception as exc:
-        logger.exception("PDF extraction failed; using fallback extraction. Error: %s", exc)
-        used_fallback = True
-        raw_text = (
-            "Alex Morgan labs: HbA1c 5.8%, fasting glucose 104 mg/dL, ApoB 112 mg/dL, "
-            "LDL-C 142 mg/dL, HDL-C 45 mg/dL, triglycerides 168 mg/dL, hs-CRP 3.2 mg/L, "
-            "Vitamin D 22 ng/mL, resting HR 74 bpm, HRV 32 ms, sleep 5.8 hr, VO2 max 32."
+        logger.exception("PDF extraction failed. Error: %s", exc)
+        # #region agent log
+        _agent_log(
+            "main.py:upload_and_parse_labs",
+            "pdf extraction failed",
+            {"file_name": file_name, "error_type": type(exc).__name__},
+            "A",
         )
+        # #endregion
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Could not extract readable text from this PDF. "
+                "Export a text-based PDF (not a scanned image) and try again."
+            ),
+        ) from exc
 
-    parsed = parse_labs_text(raw_text)
+    parsed, parse_source = parse_labs_text(raw_text)
+    used_fallback = parse_source == "fallback"
+    # #region agent log
+    _agent_log(
+        "main.py:upload_and_parse_labs",
+        "upload parsed",
+        {
+            "file_name": file_name,
+            "extracted_characters": len(raw_text),
+            "parse_source": parse_source,
+            "person_name": parsed.person_name,
+            "hba1c": parsed.biomarkers.hba1c,
+            "apob": parsed.biomarkers.apob,
+        },
+        "A",
+    )
+    # #endregion
 
     record = LabRecord(
         report_id=report_id,
@@ -466,6 +653,7 @@ async def upload_and_parse_labs(
         file_name=file_name,
         extracted_characters=len(raw_text),
         used_fallback=used_fallback,
+        parse_source=parse_source,
         parsed=parsed,
     )
 

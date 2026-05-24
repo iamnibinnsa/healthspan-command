@@ -80,11 +80,12 @@ function Dashboard() {
     computeScore,
   } = useTwin();
 
+  const biomarkerKey = parsedBiomarkers ? JSON.stringify(parsedBiomarkers) : null;
+
   useEffect(() => {
-    if (parsedBiomarkers && !score && !scoreLoading) {
-      void computeScore();
-    }
-  }, [parsedBiomarkers, score, scoreLoading, computeScore]);
+    if (!biomarkerKey) return;
+    void computeScore();
+  }, [biomarkerKey, computeScore]);
 
   const projected = projectScores(interventions);
   const fallbackBreakdown = computeHealthspan(intake, interventions);

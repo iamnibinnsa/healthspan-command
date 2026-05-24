@@ -116,7 +116,8 @@ export function TwinProvider({ children }: { children: ReactNode }) {
 
   const setParsedBiomarkers = useCallback((data: ParsedBiomarkers | null) => {
     setParsedBiomarkersState(data);
-    if (!data) setScore(null);
+    setScore(null);
+    setScoreError(null);
   }, []);
 
   const computeScore = useCallback(async (biomarkersOverride?: ParsedBiomarkers) => {
@@ -133,6 +134,24 @@ export function TwinProvider({ children }: { children: ReactNode }) {
         interventions,
       });
       setScore(result);
+      // #region agent log
+      fetch("http://127.0.0.1:7403/ingest/9ccd34db-a573-4231-aa3b-6b8148010879", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "014a59" },
+        body: JSON.stringify({
+          sessionId: "014a59",
+          location: "twin-context.tsx:computeScore",
+          message: "score set in context",
+          data: {
+            overall: result.overallHealthspanScore,
+            hba1c: biomarkers.hba1c,
+            apob: biomarkers.apob,
+          },
+          hypothesisId: "E",
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       return result;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Score compute failed";
