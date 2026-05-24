@@ -25,6 +25,12 @@ try:
 except Exception:  # pragma: no cover - optional import at runtime
     anthropic = None  # type: ignore[assignment]
 
+try:
+    from supabase import Client as SupabaseClient, create_client as _create_supabase_client
+except Exception:  # pragma: no cover - optional import at runtime
+    SupabaseClient = None  # type: ignore[assignment]
+    _create_supabase_client = None  # type: ignore[assignment]
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("healthspan-ai-brain")
@@ -526,4 +532,575 @@ Output JSON shape exactly:
     except Exception as exc:
         logger.exception("Plan endpoint failed; serving fallback. Error: %s", exc)
         return fallback_plan_response(payload.intake.name)
+
+
+# =============================================================================
+# Module 3 — Unified server-side scoring (teammate prompt contract)
+# =============================================================================
+#
+# Primary path: LLM generates strict JSON via the MediTwin scoring prompt.
+# Fallback path: deterministic engine produces the SAME JSON schema.
+
+
+DOMAIN_WEIGHTS: dict[str, float] = {
+    "metabolic": 0.20,
+    "cardio": 0.20,
+    "inflammation": 0.15,
+    "muscle": 0.15,
+    "cognition": 0.15,
+    "sleep": 0.15,
+}
+
+DomainKey = Literal["metabolic", "cardio", "inflammation", "muscle", "cognition", "sleep"]
+StatusLevel = Literal["optimal", "watch", "priority"]
+
+DOMAIN_META: dict[str, tuple[str, str, str]] = {
+    "metabolic": ("Metabolic Resilience", "Metabolic", "Activity"),
+    "cardio": ("Cardiovascular Longevity", "Cardio", "HeartPulse"),
+    "inflammation": ("Inflammation / Immune Aging", "Inflammation", "Flame"),
+    "muscle": ("Muscle & Mobility Reserve", "Muscle", "Dumbbell"),
+    "cognition": ("Cognitive Resilience", "Cognition", "Brain"),
+    "sleep": ("Sleep & Recovery", "Sleep", "Moon"),
+}
+
+DOMAIN_FORMULAS: dict[str, str] = {
+    "metabolic": "Weighted sum: HbA1c 30%, fasting glucose 20%, triglycerides 20%, exercise 20%, sleep 10%.",
+    "cardio": "Weighted sum: ApoB 35%, LDL-C 20%, HDL-C 15%, triglycerides 15%, resting HR 15%.",
+    "inflammation": "Weighted sum: hs-CRP 40%, vitamin D 25%, sleep 20%, stress 15%.",
+    "muscle": "Weighted sum: exercise 25%, strength training 25%, VO2 max 30%, protein 20%.",
+    "cognition": "Weighted sum: sleep 35%, stress 20%, exercise 20%, metabolic score 25%.",
+    "sleep": "Weighted sum: sleep duration 40%, HRV 25%, resting HR 20%, stress 15%.",
+}
+
+DOMAIN_RECOMMENDATIONS: dict[str, list[str]] = {
+    "metabolic": ["Add 30g fiber/day", "Zone 2 cardio 150 min/week", "Reduce ultra-processed carbs"],
+    "cardio": ["Discuss ApoB strategy with physician", "Soluble fiber + omega-3", "Zone 2 + strength"],
+    "inflammation": ["Correct vitamin D", "Anti-inflammatory diet", "Sleep optimization"],
+    "muscle": ["Strength training 3×/week", "Protein 1.6 g/kg", "Mobility daily"],
+    "cognition": ["Sleep +45 min", "Aerobic + resistance", "Cognitive load variety"],
+    "sleep": ["+45 min sleep", "Wind-down protocol", "Reduce evening alcohol"],
+}
+
+SCORE_SYSTEM_PROMPT = """
+You are MediTwin's Healthspan Scoring Engine for a hackathon prototype.
+
+Your job: given a user's intake + lab biomarkers, output ONE valid JSON object.
+
+CRITICAL OUTPUT RULES:
+1. Output ONLY valid JSON. No markdown, no code fences, no text before or after.
+2. Educational directional estimate only — NOT medical advice.
+3. All scores are integers 0–100 unless biologicalAgeGap (1 decimal place).
+4. Do NOT copy example scores from any sample user. Compute everything ONLY from the input data provided.
+
+CALCULATION ORDER (MANDATORY):
+STEP 1 — For each domain, compute each component sub-score (0–100) using band rules.
+STEP 2 — Domain score = round(weighted sum of its components).
+STEP 3 — overallHealthspanScore = round(0.20×metabolic + 0.20×cardio + 0.15×inflammation + 0.15×muscle + 0.15×cognition + 0.15×sleep)
+STEP 4 — biologicalAgeGap = round to 1 decimal: max(0, min(15, (100 - overallHealthspanScore) × 0.15 + lifestyle_penalty))
+  lifestyle_penalty: +1.0 if sleepHours < 6; +0.5 if exerciseFreq < 2; +0.5 if stress >= 8; +0.5 if 2+ biomarkers have status "priority"
+STEP 5 — bottlenecks = the 3 domains with the LOWEST scores, sorted ascending.
+
+JSON SCHEMA keys:
+overallHealthspanScore, biologicalAgeGap, chronologicalAge, domains[], bottlenecks[], biomarkers[], breakdown{overall,weights,domains[]}, summary, disclaimer
+
+Domain status: score >= 75 optimal; 60–74 watch; < 60 priority.
+Return valid JSON only.
+""".strip()
+
+
+class ScoreComponent(BaseModel):
+    label: str
+    raw: str
+    score: float
+    weight: float
+
+
+class BreakdownDomain(BaseModel):
+    key: str
+    label: str
+    score: int
+    formula: str
+    components: list[ScoreComponent]
+
+
+class ScoreBreakdown(BaseModel):
+    overall: int
+    weights: dict[str, float]
+    domains: list[BreakdownDomain]
+
+
+class ScoreDomainItem(BaseModel):
+    key: DomainKey
+    label: str
+    short: str
+    score: int
+    status: StatusLevel
+    icon: str
+    drivers: list[str]
+    recommendations: list[str]
+
+
+class ScoreBiomarkerItem(BaseModel):
+    name: str
+    value: float
+    unit: str
+    optimal: str
+    status: StatusLevel
+    note: str = ""
+
+
+class ScoreBottleneckItem(BaseModel):
+    key: str
+    label: str
+    score: int
+    drivers: list[str]
+
+
+class MediTwinScoreResponse(BaseModel):
+    overallHealthspanScore: int
+    biologicalAgeGap: float
+    chronologicalAge: int
+    domains: list[ScoreDomainItem]
+    bottlenecks: list[ScoreBottleneckItem]
+    biomarkers: list[ScoreBiomarkerItem]
+    breakdown: ScoreBreakdown
+    summary: str
+    disclaimer: str = "Educational directional estimate only. Not medical advice."
+
+
+class ScoreComputeRequest(BaseModel):
+    user_id: str | None = None
+    intake: IntakeData
+    biomarkers: Biomarkers
+    interventions: list[str] = Field(default_factory=list)
+
+
+class ScoreComputeResponse(BaseModel):
+    snapshot_id: str
+    user_id: str | None = None
+    source: Literal["llm", "fallback"]
+    score: MediTwinScoreResponse
+    created_at: str
+    persisted: bool = False
+
+
+SCORE_HISTORY: dict[str, list[ScoreComputeResponse]] = {}
+GLOBAL_SCORE_HISTORY: list[ScoreComputeResponse] = []
+
+
+def _clamp(n: float, lo: float = 0, hi: float = 100) -> float:
+    return max(lo, min(hi, n))
+
+
+def _band(value: float, best: float, worst: float, direction: Literal["lower", "higher"]) -> float:
+    """Piecewise-linear scorer mirroring scoringEngine.ts:band()."""
+    if direction == "lower":
+        if value <= best:
+            return 100.0
+        if value >= worst:
+            return 0.0
+        return _clamp(100.0 * (worst - value) / (worst - best))
+    if value >= best:
+        return 100.0
+    if value <= worst:
+        return 0.0
+    return _clamp(100.0 * (value - worst) / (best - worst))
+
+
+def _weighted(components: list[ScoreComponent]) -> int:
+    total_weight = sum(c.weight for c in components) or 1.0
+    weighted_sum = sum(c.score * c.weight for c in components)
+    return round(weighted_sum / total_weight)
+
+
+def _domain_status(score: int) -> StatusLevel:
+    if score >= 75:
+        return "optimal"
+    if score >= 60:
+        return "watch"
+    return "priority"
+
+
+def _biomarker_status(name: str, value: float) -> StatusLevel:
+    rules: dict[str, tuple[float, float, Literal["lower", "higher"]]] = {
+        "HbA1c": (5.4, 6.0, "lower"),
+        "Fasting Glucose": (95, 110, "lower"),
+        "ApoB": (80, 100, "lower"),
+        "LDL-C": (100, 130, "lower"),
+        "HDL-C": (50, 40, "higher"),
+        "Triglycerides": (100, 175, "lower"),
+        "hs-CRP": (1.0, 3.0, "lower"),
+        "Vitamin D": (40, 25, "higher"),
+        "Resting HR": (65, 75, "lower"),
+        "HRV": (50, 35, "higher"),
+        "Sleep Duration": (7.0, 6.0, "higher"),
+        "VO2 max": (42, 35, "higher"),
+    }
+    rule = rules.get(name)
+    if rule is None:
+        return "watch"
+    best, worst, direction = rule
+    sub_score = _band(value, best, worst, direction)
+    return _domain_status(round(sub_score))
+
+
+def _build_biomarker_items(biomarkers: Biomarkers, intake: IntakeData) -> list[ScoreBiomarkerItem]:
+    specs: list[tuple[str, float, str, str]] = [
+        ("HbA1c", biomarkers.hba1c, "%", "< 5.4"),
+        ("Fasting Glucose", biomarkers.fasting_glucose, "mg/dL", "70-95"),
+        ("ApoB", biomarkers.apob, "mg/dL", "< 80"),
+        ("LDL-C", biomarkers.ldl_c, "mg/dL", "< 100"),
+        ("HDL-C", biomarkers.hdl_c, "mg/dL", "> 50"),
+        ("Triglycerides", biomarkers.triglycerides, "mg/dL", "< 100"),
+        ("hs-CRP", biomarkers.hs_crp, "mg/L", "< 1.0"),
+        ("Vitamin D", biomarkers.vitamin_d, "ng/mL", "40-60"),
+        ("Resting HR", biomarkers.resting_hr, "bpm", "55-65"),
+        ("HRV", biomarkers.hrv, "ms", "> 50"),
+        ("Sleep Duration", intake.sleep_hours, "hr/night", "7-8.5"),
+        ("VO2 max", biomarkers.vo2_max, "ml/kg/min", "> 42"),
+    ]
+    items: list[ScoreBiomarkerItem] = []
+    for name, value, unit, optimal in specs:
+        status = _biomarker_status(name, value)
+        note = ""
+        if status == "priority":
+            note = "Above demo target — worth discussing with a clinician."
+        elif status == "watch":
+            note = "Directional signal to monitor over time."
+        items.append(
+            ScoreBiomarkerItem(
+                name=name,
+                value=value,
+                unit=unit,
+                optimal=optimal,
+                status=status,
+                note=note,
+            )
+        )
+    return items
+
+
+def _compute_breakdown_domains(
+    intake: IntakeData,
+    biomarkers: Biomarkers,
+    interventions: list[str],
+) -> list[BreakdownDomain]:
+    sleep = intake.sleep_hours
+    exercise = intake.exercise_freq
+    stress = intake.stress
+    strength_on = "strength" in interventions
+    protein_on = "protein" in interventions
+
+    sleep_score = _clamp(100 - abs(sleep - 7.75) * 25)
+    stress_score = _clamp(100 - stress * 10)
+    exercise_score = _clamp((exercise / 5.0) * 100)
+
+    component_groups: dict[str, list[ScoreComponent]] = {
+        "metabolic": [
+            ScoreComponent(label="HbA1c", raw=f"{biomarkers.hba1c} %", score=_band(biomarkers.hba1c, 5.2, 6.5, "lower"), weight=0.30),
+            ScoreComponent(label="Fasting Glucose", raw=f"{biomarkers.fasting_glucose} mg/dL", score=_band(biomarkers.fasting_glucose, 85, 125, "lower"), weight=0.20),
+            ScoreComponent(label="Triglycerides", raw=f"{biomarkers.triglycerides} mg/dL", score=_band(biomarkers.triglycerides, 80, 200, "lower"), weight=0.20),
+            ScoreComponent(label="Exercise", raw=f"{exercise} d/wk", score=exercise_score, weight=0.20),
+            ScoreComponent(label="Sleep", raw=f"{sleep} h", score=sleep_score, weight=0.10),
+        ],
+        "cardio": [
+            ScoreComponent(label="ApoB", raw=f"{biomarkers.apob} mg/dL", score=_band(biomarkers.apob, 70, 130, "lower"), weight=0.35),
+            ScoreComponent(label="LDL-C", raw=f"{biomarkers.ldl_c} mg/dL", score=_band(biomarkers.ldl_c, 90, 160, "lower"), weight=0.20),
+            ScoreComponent(label="HDL-C", raw=f"{biomarkers.hdl_c} mg/dL", score=_band(biomarkers.hdl_c, 60, 35, "higher"), weight=0.15),
+            ScoreComponent(label="Triglycerides", raw=f"{biomarkers.triglycerides} mg/dL", score=_band(biomarkers.triglycerides, 80, 200, "lower"), weight=0.15),
+            ScoreComponent(label="Resting HR", raw=f"{biomarkers.resting_hr} bpm", score=_band(biomarkers.resting_hr, 58, 85, "lower"), weight=0.15),
+        ],
+        "inflammation": [
+            ScoreComponent(label="hs-CRP", raw=f"{biomarkers.hs_crp} mg/L", score=_band(biomarkers.hs_crp, 0.5, 4.0, "lower"), weight=0.40),
+            ScoreComponent(label="Vitamin D", raw=f"{biomarkers.vitamin_d} ng/mL", score=_band(biomarkers.vitamin_d, 50, 20, "higher"), weight=0.25),
+            ScoreComponent(label="Sleep", raw=f"{sleep} h", score=sleep_score, weight=0.20),
+            ScoreComponent(label="Stress", raw=f"{stress}/10", score=stress_score, weight=0.15),
+        ],
+        "muscle": [
+            ScoreComponent(label="Exercise", raw=f"{exercise} d/wk", score=exercise_score, weight=0.25),
+            ScoreComponent(label="Strength training", raw="On" if strength_on else "Off", score=100 if strength_on else 30, weight=0.25),
+            ScoreComponent(label="VO2 max", raw=f"{biomarkers.vo2_max} ml/kg/min", score=_band(biomarkers.vo2_max, 45, 25, "higher"), weight=0.30),
+            ScoreComponent(label="Protein optimization", raw="On" if protein_on else "Off", score=100 if protein_on else 40, weight=0.20),
+        ],
+    }
+
+    metabolic_score = _weighted(component_groups["metabolic"])
+    component_groups["cognition"] = [
+        ScoreComponent(label="Sleep", raw=f"{sleep} h", score=sleep_score, weight=0.35),
+        ScoreComponent(label="Stress", raw=f"{stress}/10", score=stress_score, weight=0.20),
+        ScoreComponent(label="Exercise", raw=f"{exercise} d/wk", score=exercise_score, weight=0.20),
+        ScoreComponent(label="Metabolic score", raw=str(metabolic_score), score=metabolic_score, weight=0.25),
+    ]
+    component_groups["sleep"] = [
+        ScoreComponent(label="Sleep duration", raw=f"{sleep} h", score=sleep_score, weight=0.40),
+        ScoreComponent(label="HRV", raw=f"{biomarkers.hrv} ms", score=_band(biomarkers.hrv, 60, 20, "higher"), weight=0.25),
+        ScoreComponent(label="Resting HR", raw=f"{biomarkers.resting_hr} bpm", score=_band(biomarkers.resting_hr, 58, 85, "lower"), weight=0.20),
+        ScoreComponent(label="Stress", raw=f"{stress}/10", score=stress_score, weight=0.15),
+    ]
+
+    breakdown_domains: list[BreakdownDomain] = []
+    for key in ("metabolic", "cardio", "inflammation", "muscle", "cognition", "sleep"):
+        label, _, _ = DOMAIN_META[key]
+        components = component_groups[key]
+        breakdown_domains.append(
+            BreakdownDomain(
+                key=key,
+                label=label,
+                score=_weighted(components),
+                formula=DOMAIN_FORMULAS[key],
+                components=components,
+            )
+        )
+    return breakdown_domains
+
+
+def _drivers_from_components(components: list[ScoreComponent], limit: int = 3) -> list[str]:
+    weakest = sorted(components, key=lambda c: c.score)[:limit]
+    return [f"{c.label}: {c.raw}" for c in weakest]
+
+
+def _estimate_biological_age_gap(
+    overall_score: int,
+    intake: IntakeData,
+    biomarker_items: list[ScoreBiomarkerItem],
+) -> float:
+    lifestyle_penalty = 0.0
+    if intake.sleep_hours < 6:
+        lifestyle_penalty += 1.0
+    if intake.exercise_freq < 2:
+        lifestyle_penalty += 0.5
+    if intake.stress >= 8:
+        lifestyle_penalty += 0.5
+    priority_count = sum(1 for b in biomarker_items if b.status == "priority")
+    if priority_count >= 2:
+        lifestyle_penalty += 0.5
+
+    gap = (100 - overall_score) * 0.15 + lifestyle_penalty
+    return round(_clamp(gap, 0, 15), 1)
+
+
+def build_score_response_fallback(
+    intake: IntakeData,
+    biomarkers: Biomarkers,
+    interventions: list[str],
+) -> MediTwinScoreResponse:
+    breakdown_domains = _compute_breakdown_domains(intake, biomarkers, interventions)
+    overall = round(sum(d.score * DOMAIN_WEIGHTS[d.key] for d in breakdown_domains))
+    biomarker_items = _build_biomarker_items(biomarkers, intake)
+
+    domain_items: list[ScoreDomainItem] = []
+    for bd in breakdown_domains:
+        label, short, icon = DOMAIN_META[bd.key]
+        domain_items.append(
+            ScoreDomainItem(
+                key=bd.key,  # type: ignore[arg-type]
+                label=label,
+                short=short,
+                score=bd.score,
+                status=_domain_status(bd.score),
+                icon=icon,
+                drivers=_drivers_from_components(bd.components),
+                recommendations=DOMAIN_RECOMMENDATIONS[bd.key][:3],
+            )
+        )
+
+    sorted_domains = sorted(domain_items, key=lambda d: d.score)
+    bottlenecks = [
+        ScoreBottleneckItem(
+            key=d.key,
+            label=d.label,
+            score=d.score,
+            drivers=d.drivers[:2],
+        )
+        for d in sorted_domains[:3]
+    ]
+
+    top_names = ", ".join(b.label for b in bottlenecks)
+    summary = (
+        f"Directional healthspan readiness is {overall}/100 for age {intake.age}. "
+        f"Top opportunities to support first: {top_names}."
+    )
+
+    return MediTwinScoreResponse(
+        overallHealthspanScore=overall,
+        biologicalAgeGap=_estimate_biological_age_gap(overall, intake, biomarker_items),
+        chronologicalAge=intake.age,
+        domains=domain_items,
+        bottlenecks=bottlenecks,
+        biomarkers=biomarker_items,
+        breakdown=ScoreBreakdown(
+            overall=overall,
+            weights=DOMAIN_WEIGHTS,
+            domains=breakdown_domains,
+        ),
+        summary=summary,
+    )
+
+
+def _score_user_prompt(payload: ScoreComputeRequest) -> str:
+    return json.dumps(
+        {
+            "intake": payload.intake.model_dump(),
+            "biomarkers": payload.biomarkers.model_dump(),
+            "interventions": payload.interventions,
+            "instructions": (
+                "Return ONE JSON object matching the MediTwin score schema. "
+                "Use the band rules and domain weights from the system prompt. "
+                "chronologicalAge must equal intake.age."
+            ),
+        },
+        indent=2,
+    )
+
+
+def generate_score_llm(payload: ScoreComputeRequest) -> MediTwinScoreResponse:
+    raw = call_llm_json(SCORE_SYSTEM_PROMPT, _score_user_prompt(payload))
+    score = MediTwinScoreResponse.model_validate(raw)
+    score.chronologicalAge = payload.intake.age
+    return score
+
+
+_supabase_client_cache: SupabaseClient | None = None  # type: ignore[valid-type]
+
+
+def _supabase_admin_client() -> SupabaseClient | None:  # type: ignore[valid-type]
+    global _supabase_client_cache
+    if _supabase_client_cache is not None:
+        return _supabase_client_cache
+    if _create_supabase_client is None:
+        return None
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+    if not url or not key:
+        return None
+    _supabase_client_cache = _create_supabase_client(url, key)
+    return _supabase_client_cache
+
+
+def _snapshot_row_to_response(row: dict[str, Any]) -> ScoreComputeResponse:
+    if row.get("score_payload"):
+        score = MediTwinScoreResponse.model_validate(row["score_payload"])
+    else:
+        score = build_score_response_fallback(
+            IntakeData.model_validate(row.get("intake") or {}),
+            Biomarkers.model_validate(row.get("biomarkers") or fallback_parse_response().biomarkers.model_dump()),
+            list(row.get("interventions") or []),
+        )
+    return ScoreComputeResponse(
+        snapshot_id=row.get("snapshot_id") or f"snap_{row.get('id', uuid4().hex[:12])}",
+        user_id=row.get("user_id"),
+        source=row.get("source") or "fallback",
+        score=score,
+        created_at=str(row.get("created_at") or datetime.now(timezone.utc).isoformat()),
+        persisted=True,
+    )
+
+
+def _persist_score_response(response: ScoreComputeResponse, payload: ScoreComputeRequest) -> bool:
+    client = _supabase_admin_client()
+    if client is None or not response.user_id:
+        return False
+    try:
+        client.table("score_snapshots").insert(
+            {
+                "snapshot_id": response.snapshot_id,
+                "user_id": response.user_id,
+                "overall_score": response.score.overallHealthspanScore,
+                "bio_age_gap": response.score.biologicalAgeGap,
+                "domain_scores": {d.key: d.score for d in response.score.domains},
+                "bottlenecks": [b.model_dump() for b in response.score.bottlenecks],
+                "interventions": payload.interventions,
+                "intake": payload.intake.model_dump(),
+                "biomarkers": payload.biomarkers.model_dump(),
+                "score_payload": response.score.model_dump(),
+                "source": response.source,
+            }
+        ).execute()
+        return True
+    except Exception as exc:
+        logger.warning("Supabase score snapshot insert failed; falling back to memory. Error: %s", exc)
+        return False
+
+
+def _store_score_in_memory(response: ScoreComputeResponse) -> None:
+    GLOBAL_SCORE_HISTORY.append(response)
+    key = response.user_id or "__anonymous__"
+    SCORE_HISTORY.setdefault(key, []).append(response)
+
+
+@app.post("/score/compute", response_model=ScoreComputeResponse)
+def score_compute(payload: ScoreComputeRequest) -> ScoreComputeResponse:
+    source: Literal["llm", "fallback"] = "fallback"
+    try:
+        score = generate_score_llm(payload)
+        source = "llm"
+    except Exception as exc:
+        logger.exception("LLM score generation failed; serving fallback. Error: %s", exc)
+        score = build_score_response_fallback(payload.intake, payload.biomarkers, payload.interventions)
+
+    response = ScoreComputeResponse(
+        snapshot_id=f"snap_{uuid4().hex[:12]}",
+        user_id=payload.user_id,
+        source=source,
+        score=score,
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+    response.persisted = _persist_score_response(response, payload)
+    if not response.persisted:
+        _store_score_in_memory(response)
+    return response
+
+
+@app.get("/score/latest", response_model=ScoreComputeResponse | None)
+def score_latest(user_id: str | None = None) -> ScoreComputeResponse | None:
+    client = _supabase_admin_client()
+    if client is not None and user_id:
+        try:
+            result = (
+                client.table("score_snapshots")
+                .select("*")
+                .eq("user_id", user_id)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            rows = result.data or []
+            if rows:
+                return _snapshot_row_to_response(rows[0])
+        except Exception as exc:
+            logger.warning("Supabase /score/latest read failed; falling back to memory. Error: %s", exc)
+
+    key = user_id or "__anonymous__"
+    records = SCORE_HISTORY.get(key) or []
+    if records:
+        return records[-1]
+    if user_id is None and GLOBAL_SCORE_HISTORY:
+        return GLOBAL_SCORE_HISTORY[-1]
+    return None
+
+
+@app.get("/score/history", response_model=list[ScoreComputeResponse])
+def score_history(user_id: str | None = None, limit: int = 50) -> list[ScoreComputeResponse]:
+    safe_limit = max(1, min(limit, 500))
+
+    client = _supabase_admin_client()
+    if client is not None and user_id:
+        try:
+            result = (
+                client.table("score_snapshots")
+                .select("*")
+                .eq("user_id", user_id)
+                .order("created_at", desc=False)
+                .limit(safe_limit)
+                .execute()
+            )
+            rows = result.data or []
+            if rows:
+                return [_snapshot_row_to_response(r) for r in rows]
+        except Exception as exc:
+            logger.warning("Supabase /score/history read failed; falling back to memory. Error: %s", exc)
+
+    if user_id is None:
+        return GLOBAL_SCORE_HISTORY[-safe_limit:]
+    return SCORE_HISTORY.get(user_id, [])[-safe_limit:]
 
