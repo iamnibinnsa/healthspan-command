@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import time
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -12,6 +13,16 @@ from dotenv import load_dotenv
 
 _PROJECT_ROOT = Path(__file__).resolve().parent
 load_dotenv(_PROJECT_ROOT / ".env")
+load_dotenv(_PROJECT_ROOT / ".env.local", override=True)
+
+# Model ids must match the caller's Anthropic account (older ids 404 on new accounts).
+_DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
+_CLAUDE_MODEL_FALLBACKS = (
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-4-5-20250929",
+)
+_llm_unavailable_logged = False
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -203,20 +214,33 @@ def fallback_parse_response() -> ParseResponse:
     return ParseResponse(person_name="Alex Morgan", biomarkers=_alex_biomarkers())
 
 
-_BIOMARKER_REGEX: list[tuple[str, list[str]]] = [
-    ("hba1c", [r"(?:HbA1c|Hemoglobin A1c)[^\d]{0,40}([\d.]+)\s*%?", r"hba1c[:\s]+([\d.]+)\s*%?"]),
-    ("fasting_glucose", [r"(?:Fasting Glucose|fasting glucose)[^\d]{0,40}([\d.]+)", r"fasting_glucose[:\s]+([\d.]+)"]),
-    ("apob", [r"(?:ApoB|Apolipoprotein B)[^\d]{0,40}([\d.]+)", r"apob[:\s]+([\d.]+)"]),
-    ("ldl_c", [r"(?:LDL[- ]C|LDL Cholesterol)[^\d]{0,40}([\d.]+)", r"ldl_c[:\s]+([\d.]+)"]),
-    ("hdl_c", [r"(?:HDL[- ]C|HDL Cholesterol)[^\d]{0,40}([\d.]+)", r"hdl_c[:\s]+([\d.]+)"]),
-    ("triglycerides", [r"Triglycerides[^\d]{0,40}([\d.]+)", r"triglycerides[:\s]+([\d.]+)"]),
-    ("hs_crp", [r"(?:hs-CRP|High-Sensitivity CRP)[^\d]{0,40}([\d.]+)", r"hs_crp[:\s]+([\d.]+)"]),
-    ("vitamin_d", [r"(?:Vitamin D|25-Hydroxy Vitamin D)[^\d]{0,40}([\d.]+)", r"vitamin_d[:\s]+([\d.]+)"]),
-    ("resting_hr", [r"(?:Resting HR|Resting Heart Rate)[^\d]{0,40}([\d.]+)", r"resting_hr[:\s]+([\d.]+)"]),
-    ("hrv", [r"(?:HRV|Heart Rate Variability)[^\d]{0,40}([\d.]+)", r"hrv[:\s]+([\d.]+)"]),
-    ("sleep_duration", [r"(?:Sleep Duration|Average Sleep Duration|sleep duration)[^\d]{0,40}([\d.]+)", r"sleep[:\s]+([\d.]+)\s*hr", r"sleep_duration[:\s]+([\d.]+)"]),
-    ("vo2_max", [r"(?:VO2 max|VO2 Max)[^\d]{0,40}([\d.]+)", r"vo2_max[:\s]+([\d.]+)"]),
+# Label anchors + plausible ranges for regex fallback (avoids flags / analyte-name digits).
+_BIOMARKER_SPECS: list[tuple[str, list[str], float, float]] = [
+    ("hba1c", [r"HbA1c", r"Hemoglobin\s*A1c", r"hba1c\s*[:=]"], 4.0, 15.0),
+    ("fasting_glucose", [r"Fasting\s*Glucose", r"fasting\s*glucose", r"fasting_glucose\s*[:=]"], 50.0, 400.0),
+    ("apob", [r"ApoB", r"Apolipoprotein\s*B", r"apob\s*[:=]"], 30.0, 250.0),
+    ("ldl_c", [r"LDL[- ]?C", r"LDL\s*Cholesterol", r"ldl_c\s*[:=]"], 40.0, 300.0),
+    ("hdl_c", [r"HDL[- ]?C", r"HDL\s*Cholesterol", r"hdl_c\s*[:=]"], 20.0, 120.0),
+    ("triglycerides", [r"Triglycerides", r"triglycerides\s*[:=]"], 30.0, 1000.0),
+    ("hs_crp", [r"hs-?CRP", r"High[- ]Sensitivity\s*CRP", r"hs_crp\s*[:=]"], 0.1, 50.0),
+    (
+        "vitamin_d",
+        [
+            r"25[- ]?(?:\(OH\)|OH|Hydroxy)[\s\w]*Vitamin\s*D",
+            r"Vitamin\s*D[\s,]*25[- ]?(?:\(OH\)|OH|Hydroxy)",
+            r"Vitamin\s*D",
+            r"vitamin_d\s*[:=]",
+        ],
+        8.0,
+        120.0,
+    ),
+    ("resting_hr", [r"Resting\s*(?:HR|Heart\s*Rate)", r"resting_hr\s*[:=]"], 45.0, 120.0),
+    ("hrv", [r"\bHRV\b", r"Heart\s*Rate\s*Variability", r"hrv\s*[:=]"], 10.0, 200.0),
+    ("sleep_duration", [r"Sleep\s*Duration", r"Average\s*Sleep", r"sleep_duration\s*[:=]", r"\bsleep\b"], 3.0, 14.0),
+    ("vo2_max", [r"VO2\s*max", r"vo2_max\s*[:=]"], 15.0, 90.0),
 ]
+
+_RESULT_HINTS = ("result", "value", "patient", "current", "your", "specimen")
 
 _NAME_REGEX = [
     r"(?:Patient|Name):\s*([A-Za-z .'-]+?)(?:\n|Date|Age|Sex|$)",
@@ -225,25 +249,57 @@ _NAME_REGEX = [
 ]
 
 
-def _first_regex_match(text: str, patterns: list[str]) -> float | None:
-    for pattern in patterns:
-        match = re.search(pattern, text, flags=re.IGNORECASE)
-        if match:
-            try:
-                return float(match.group(1))
-            except ValueError:
-                continue
-    return None
+def _is_name_digit_noise(key: str, val: float, before: str, after: str) -> bool:
+    """Reject digits that come from analyte names (25-OH) or abnormal flags (1)."""
+    b = before.lower()
+    a = after.lower()
+    if key == "vitamin_d" and re.match(r"25[- ]?(?:\(oh\)|oh|hydroxy)", a):
+        return True
+    if key == "hba1c" and val <= 2.0:
+        return True
+    return False
+
+
+def _pick_plausible_value(text: str, key: str, anchors: list[str], min_val: float, max_val: float) -> float | None:
+    """Collect numeric candidates after label anchors; prefer result hints, then nearest to label."""
+    best: tuple[float, int, int, bool] | None = None  # value, text position, anchor length, result-hinted
+    for anchor in anchors:
+        for match in re.finditer(anchor, text, flags=re.IGNORECASE):
+            window = text[match.end() : match.end() + 55]
+            anchor_len = len(match.group(0))
+            for num_match in re.finditer(r"([\d.]+)", window):
+                try:
+                    val = float(num_match.group(1))
+                except ValueError:
+                    continue
+                if not (min_val <= val <= max_val):
+                    continue
+                abs_pos = match.end() + num_match.start()
+                before = text[max(0, abs_pos - 24) : abs_pos]
+                after = text[abs_pos : abs_pos + 14]
+                if _is_name_digit_noise(key, val, before, after):
+                    continue
+                pre = text[max(0, abs_pos - 40) : abs_pos].lower()
+                hinted = any(h in pre for h in _RESULT_HINTS)
+                if best is None:
+                    best = (val, abs_pos, anchor_len, hinted)
+                    continue
+                if hinted and not best[3]:
+                    best = (val, abs_pos, anchor_len, hinted)
+                elif hinted == best[3]:
+                    if anchor_len > best[2] or (anchor_len == best[2] and abs_pos < best[1]):
+                        best = (val, abs_pos, anchor_len, hinted)
+    return best[0] if best else None
 
 
 def regex_parse_labs_text(raw_text: str) -> ParseResponse | None:
     values: dict[str, float] = {}
-    for key, patterns in _BIOMARKER_REGEX:
-        found = _first_regex_match(raw_text, patterns)
+    for key, anchors, min_val, max_val in _BIOMARKER_SPECS:
+        found = _pick_plausible_value(raw_text, key, anchors, min_val, max_val)
         if found is not None:
             values[key] = found
 
-    required_keys = [key for key, _ in _BIOMARKER_REGEX]
+    required_keys = [key for key, _, _, _ in _BIOMARKER_SPECS]
     if len(values) < len(required_keys):
         _agent_log(
             "main.py:regex_parse_labs_text",
@@ -252,6 +308,19 @@ def regex_parse_labs_text(raw_text: str) -> ParseResponse | None:
             "B",
         )
         return None
+
+    # #region agent log
+    _agent_log(
+        "main.py:regex_parse_labs_text",
+        "regex values picked",
+        {
+            "hba1c": values.get("hba1c"),
+            "vitamin_d": values.get("vitamin_d"),
+            "fasting_glucose": values.get("fasting_glucose"),
+        },
+        "D",
+    )
+    # #endregion
 
     person_name = "Unknown Patient"
     for pattern in _NAME_REGEX:
@@ -421,27 +490,65 @@ def _call_openai_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
     return _extract_json_object(content)
 
 
+def _anthropic_model_candidates() -> list[str]:
+    preferred = os.getenv("CLAUDE_MODEL", _DEFAULT_CLAUDE_MODEL).strip()
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for model in (preferred, *_CLAUDE_MODEL_FALLBACKS):
+        if model and model not in seen:
+            seen.add(model)
+            ordered.append(model)
+    return ordered
+
+
 def _call_anthropic_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
     if anthropic is None:
         raise RuntimeError("anthropic package is not installed.")
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-latest")
-    response = client.messages.create(
-        model=model,
-        max_tokens=2000,
-        temperature=0.1,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
-
-    text_chunks: list[str] = []
-    for block in response.content:
-        block_text = getattr(block, "text", None)
-        if isinstance(block_text, str):
-            text_chunks.append(block_text)
-    if not text_chunks:
-        raise ValueError("Anthropic response had no text content.")
-    return _extract_json_object("\n".join(text_chunks))
+    last_error: Exception | None = None
+    for model in _anthropic_model_candidates():
+        try:
+            response = client.messages.create(
+                model=model,
+                max_tokens=2000,
+                temperature=0.1,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+            # #region agent log
+            _agent_log(
+                "main.py:_call_anthropic_json",
+                "anthropic model ok",
+                {"model": model},
+                "A",
+            )
+            # #endregion
+            text_chunks: list[str] = []
+            for block in response.content:
+                block_text = getattr(block, "text", None)
+                if isinstance(block_text, str):
+                    text_chunks.append(block_text)
+            if not text_chunks:
+                raise ValueError("Anthropic response had no text content.")
+            return _extract_json_object("\n".join(text_chunks))
+        except Exception as exc:
+            last_error = exc
+            err = str(exc).lower()
+            if "not_found" in err or "404" in err:
+                logger.debug("Anthropic model unavailable, trying next: %s", model)
+                # #region agent log
+                _agent_log(
+                    "main.py:_call_anthropic_json",
+                    "anthropic model 404",
+                    {"model": model, "error": str(exc)[:200]},
+                    "A",
+                )
+                # #endregion
+                continue
+            raise
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("No Anthropic model configured.")
 
 
 def call_llm_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
@@ -506,6 +613,7 @@ Output JSON shape exactly:
                 "parse_source": "llm",
                 "person_name": result.person_name,
                 "hba1c": result.biomarkers.hba1c,
+                "vitamin_d": result.biomarkers.vitamin_d,
                 "apob": result.biomarkers.apob,
             },
             "B",
@@ -513,7 +621,12 @@ Output JSON shape exactly:
         # #endregion
         return result, "llm"
     except Exception as exc:
-        logger.exception("Parse endpoint LLM failed; trying regex. Error: %s", exc)
+        global _llm_unavailable_logged
+        if not _llm_unavailable_logged:
+            logger.warning("Parse LLM unavailable; using regex/fallback. Error: %s", exc)
+            _llm_unavailable_logged = True
+        else:
+            logger.debug("Parse LLM retry failed: %s", exc)
         # #region agent log
         _agent_log(
             "main.py:parse_labs_text",
@@ -533,6 +646,7 @@ Output JSON shape exactly:
                 "parse_source": "regex",
                 "person_name": regex_result.person_name,
                 "hba1c": regex_result.biomarkers.hba1c,
+                "vitamin_d": regex_result.biomarkers.vitamin_d,
                 "apob": regex_result.biomarkers.apob,
             },
             "B",
@@ -618,7 +732,9 @@ async def upload_and_parse_labs(
             ),
         ) from exc
 
+    t_parse = time.perf_counter()
     parsed, parse_source = parse_labs_text(raw_text)
+    parse_ms = int((time.perf_counter() - t_parse) * 1000)
     used_fallback = parse_source == "fallback"
     # #region agent log
     _agent_log(
@@ -628,11 +744,12 @@ async def upload_and_parse_labs(
             "file_name": file_name,
             "extracted_characters": len(raw_text),
             "parse_source": parse_source,
+            "parse_ms": parse_ms,
             "person_name": parsed.person_name,
             "hba1c": parsed.biomarkers.hba1c,
             "apob": parsed.biomarkers.apob,
         },
-        "A",
+        "E",
     )
     # #endregion
 
@@ -1219,12 +1336,27 @@ def _store_score_in_memory(response: ScoreComputeResponse) -> None:
 @app.post("/score/compute", response_model=ScoreComputeResponse)
 def score_compute(payload: ScoreComputeRequest) -> ScoreComputeResponse:
     source: Literal["llm", "fallback"] = "fallback"
+    t_score = time.perf_counter()
     try:
         score = generate_score_llm(payload)
         source = "llm"
     except Exception as exc:
-        logger.exception("LLM score generation failed; serving fallback. Error: %s", exc)
+        global _llm_unavailable_logged
+        if not _llm_unavailable_logged:
+            logger.warning("Score LLM unavailable; using deterministic fallback. Error: %s", exc)
+            _llm_unavailable_logged = True
+        else:
+            logger.debug("Score LLM retry failed: %s", exc)
         score = build_score_response_fallback(payload.intake, payload.biomarkers, payload.interventions)
+    score_ms = int((time.perf_counter() - t_score) * 1000)
+    # #region agent log
+    _agent_log(
+        "main.py:score_compute",
+        "score computed",
+        {"source": source, "score_ms": score_ms},
+        "E",
+    )
+    # #endregion
 
     response = ScoreComputeResponse(
         snapshot_id=f"snap_{uuid4().hex[:12]}",

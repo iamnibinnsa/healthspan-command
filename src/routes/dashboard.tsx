@@ -158,7 +158,7 @@ const INGREDIENTS: {
 ];
 
 function Dashboard() {
-  const { interventions, intake, parsedBiomarkers, score, scoreLoading, scoreError, computeScore } = useTwin();
+  const { interventions, intake, parsedBiomarkers, score, scoreLoading, scoreError, scoredBiomarkerKey, computeScore } = useTwin();
   const projected = projectScores(interventions);
   const bioAge = projectBioAge(intake.age, interventions);
   const bioBand = bandFromGap(bioAge.projectedGap);
@@ -170,8 +170,9 @@ function Dashboard() {
   const biomarkerKey = parsedBiomarkers ? JSON.stringify(parsedBiomarkers) : null;
   useEffect(() => {
     if (!biomarkerKey) return;
+    if (scoredBiomarkerKey === biomarkerKey && score) return;
     void computeScore();
-  }, [biomarkerKey, computeScore]);
+  }, [biomarkerKey, scoredBiomarkerKey, score, computeScore]);
 
   const radarData = domains.map((d) => ({ domain: d.short, score: d.score, fullMark: 100 }));
   const bottlenecks = [...domains].sort((a, b) => a.score - b.score).slice(0, 3);

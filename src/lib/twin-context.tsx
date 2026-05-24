@@ -95,6 +95,7 @@ interface Ctx {
   score: MediTwinScore | null;
   scoreLoading: boolean;
   scoreError: string | null;
+  scoredBiomarkerKey: string | null;
   computeScore: (biomarkersOverride?: ParsedBiomarkers) => Promise<MediTwinScore | null>;
   interventions: string[];
   toggleIntervention: (id: string) => void;
@@ -112,37 +113,51 @@ export function TwinProvider({ children }: { children: ReactNode }) {
   const [score, setScore] = useState<MediTwinScore | null>(null);
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
+  const [scoredBiomarkerKey, setScoredBiomarkerKey] = useState<string | null>(null);
   const [interventions, setInterventions] = useState<string[]>([]);
+  const scoreInFlightRef = useRef<Map<string, Promise<MediTwinScore | null>>>(new Map());
 
   const setParsedBiomarkers = useCallback((data: ParsedBiomarkers | null) => {
     setParsedBiomarkersState(data);
     setScore(null);
     setScoreError(null);
+    setScoredBiomarkerKey(null);
   }, []);
 
   const computeScore = useCallback(async (biomarkersOverride?: ParsedBiomarkers) => {
     const biomarkers = biomarkersOverride ?? parsedBiomarkers;
     if (!biomarkers) return null;
 
-    setScoreLoading(true);
-    setScoreError(null);
-    try {
-      const result = await fetchScoreCompute({
-        userId: user?.id ?? null,
-        intake,
-        biomarkers,
-        interventions,
-      });
-      setScore(result);
-      return result;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Score compute failed";
-      setScoreError(msg);
-      console.error("Score compute error:", msg);
-      return null;
-    } finally {
-      setScoreLoading(false);
-    }
+    const key = JSON.stringify(biomarkers);
+    const inFlight = scoreInFlightRef.current.get(key);
+    if (inFlight) return inFlight;
+
+    const run = (async () => {
+      setScoreLoading(true);
+      setScoreError(null);
+      try {
+        const result = await fetchScoreCompute({
+          userId: user?.id ?? null,
+          intake,
+          biomarkers,
+          interventions,
+        });
+        setScore(result);
+        setScoredBiomarkerKey(key);
+        return result;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Score compute failed";
+        setScoreError(msg);
+        console.error("Score compute error:", msg);
+        return null;
+      } finally {
+        setScoreLoading(false);
+        scoreInFlightRef.current.delete(key);
+      }
+    })();
+
+    scoreInFlightRef.current.set(key, run);
+    return run;
   }, [intake, interventions, parsedBiomarkers, user?.id]);
 
   // Track the last userId whose profile was loaded so we don't re-fetch
@@ -166,6 +181,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
           setParsedBiomarkersState(null);
           setScore(null);
           setScoreError(null);
+          setScoredBiomarkerKey(null);
           setInterventions([]);
           loadedForRef.current = null;
         }
@@ -221,6 +237,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
       score,
       scoreLoading,
       scoreError,
+      scoredBiomarkerKey,
       computeScore,
       interventions,
       setInterventions,
@@ -230,7 +247,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
         ),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, authLoading, intake, labsLoaded, parsedBiomarkers, score, scoreLoading, scoreError, computeScore, interventions]
+    [user, authLoading, intake, labsLoaded, parsedBiomarkers, score, scoreLoading, scoreError, scoredBiomarkerKey, computeScore, interventions]
   );
 
   return <TwinCtx.Provider value={value}>{children}</TwinCtx.Provider>;

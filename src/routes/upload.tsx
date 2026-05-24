@@ -80,9 +80,6 @@ function LabUpload() {
     setError(null);
     setProcessing(true);
     setStage(0);
-    const stageMs = 850;
-    [1, 2, 3, 4].forEach((i) => setTimeout(() => setStage(i), i * stageMs));
-
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -168,8 +165,6 @@ function LabUpload() {
                 setError(null);
                 setProcessing(true);
                 setStage(0);
-                const stageMs = 850;
-                [1, 2, 3, 4].forEach((i) => setTimeout(() => setStage(i), i * stageMs));
                 try {
                   const response = await fetch(`${AI_API_BASE}/api/parse`, {
                     method: "POST",
