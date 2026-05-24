@@ -181,6 +181,30 @@ function Dashboard() {
 
   // Use backend score if available, fall back to local projection
   const hs = score?.overallHealthspanScore ?? projected.healthspan;
+  const labBiomarkers: Biomarker[] = score?.biomarkers ?? SAMPLE_BIOMARKERS;
+
+  // #region agent log
+  useEffect(() => {
+    fetch("http://127.0.0.1:7403/ingest/9ccd34db-a573-4231-aa3b-6b8148010879", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "014a59" },
+      body: JSON.stringify({
+        sessionId: "014a59",
+        location: "dashboard.tsx:labBiomarkers",
+        message: "lab display biomarkers source",
+        data: {
+          source: score?.biomarkers ? "score" : "sample_fallback",
+          hba1c: labBiomarkers.find((b) => b.name === "HbA1c")?.value ?? null,
+          apob: labBiomarkers.find((b) => b.name === "ApoB")?.value ?? null,
+          parsed_hba1c: parsedBiomarkers?.hba1c ?? null,
+        },
+        hypothesisId: "A",
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  }, [score, parsedBiomarkers]);
+  // #endregion
+
   const readinessLabel =
     hs >= 75 ? "Strong starting point" : hs >= 60 ? "Good starting point" : "Lots of room to improve";
   const readinessColor =
@@ -409,7 +433,7 @@ function Dashboard() {
       </div>
 
       {/* Your key health signals — grouped by system with friendly chips */}
-      <HealthSignalsSection biomarkers={SAMPLE_BIOMARKERS} />
+      <HealthSignalsSection biomarkers={labBiomarkers} />
 
       {/* How MediTwin builds your score — gamified ingredients + drawer */}
       <ScoreRecipeSection breakdown={breakdown} />
