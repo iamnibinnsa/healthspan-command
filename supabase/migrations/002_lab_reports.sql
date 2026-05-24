@@ -26,3 +26,5 @@ DROP POLICY IF EXISTS "own lab reports write" ON lab_reports;
 CREATE POLICY "own lab reports write" ON lab_reports
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
+
+GRANT ALL ON TABLE lab_reports TO authenticated;

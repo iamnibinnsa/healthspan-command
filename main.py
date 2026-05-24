@@ -7,6 +7,9 @@ from io import BytesIO
 from uuid import uuid4
 from typing import Any, Literal
 
+from dotenv import load_dotenv
+load_dotenv()  # loads .env in the project root (if present)
+
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
