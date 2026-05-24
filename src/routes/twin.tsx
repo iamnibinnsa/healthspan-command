@@ -1,15 +1,35 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity, HeartPulse, Flame, Dumbbell, Brain, Moon, X,
   ArrowRight, Sparkles, Lightbulb, Target, Dna,
 } from "lucide-react";
-import { INITIAL_DOMAINS, projectScores, statusColor, type DomainKey } from "@/lib/mockData";
-import { useTwin } from "@/lib/twin-context";
-import { projectBioAge, bandFromGap } from "@/lib/bioAgeProjection";
+import {
+  INITIAL_BIO_AGE_GAP, INITIAL_DOMAINS, SAMPLE_BIOMARKERS, projectScores, statusColor,
+  type Biomarker, type DomainKey,
+} from "@/lib/mockData";
+import { useTwin, type ParsedBiomarkers } from "@/lib/twin-context";
+import { bandFromGap } from "@/lib/bioAgeProjection";
+import { computeHealthspan } from "@/lib/scoringEngine";
 import { FriendlyStatusBadge } from "@/components/FriendlyStatusBadge";
 import { TrustNote } from "@/components/TrustNote";
 import { DOMAIN_BLURBS, CTA } from "@/lib/copy";
+
+function parsedToBiomarkers(p: ParsedBiomarkers): Biomarker[] {
+  return [
+    { name: "HbA1c",           value: p.hba1c,           unit: "%",         optimal: "< 5.4",     status: "watch" as const },
+    { name: "Fasting Glucose", value: p.fasting_glucose, unit: "mg/dL",     optimal: "70–95",     status: "watch" as const },
+    { name: "ApoB",            value: p.apob,            unit: "mg/dL",     optimal: "< 80",      status: "watch" as const },
+    { name: "LDL-C",           value: p.ldl_c,           unit: "mg/dL",     optimal: "< 100",     status: "watch" as const },
+    { name: "HDL-C",           value: p.hdl_c,           unit: "mg/dL",     optimal: "> 50",      status: "watch" as const },
+    { name: "Triglycerides",   value: p.triglycerides,   unit: "mg/dL",     optimal: "< 100",     status: "watch" as const },
+    { name: "hs-CRP",          value: p.hs_crp,          unit: "mg/L",      optimal: "< 1.0",     status: "watch" as const },
+    { name: "Vitamin D",       value: p.vitamin_d,       unit: "ng/mL",     optimal: "40–60",     status: "watch" as const },
+    { name: "Resting HR",      value: p.resting_hr,      unit: "bpm",       optimal: "55–65",     status: "watch" as const },
+    { name: "HRV",             value: p.hrv,             unit: "ms",        optimal: "> 50",      status: "watch" as const },
+    { name: "VO2 max",         value: p.vo2_max,         unit: "ml/kg/min", optimal: "> 42",      status: "watch" as const },
+  ];
+}
 
 /**
  * Page-local label/phrase mapping. We deliberately do NOT mutate the global
@@ -57,12 +77,35 @@ const POSITIONS: Record<DomainKey, { x: number; y: number }> = {
 };
 
 function TwinMap() {
-  const { interventions, intake } = useTwin();
+  const { interventions, intake, parsedBiomarkers } = useTwin();
+
+  const activeBiomarkers: Biomarker[] = parsedBiomarkers
+    ? parsedToBiomarkers(parsedBiomarkers)
+    : SAMPLE_BIOMARKERS;
+
+  // Real baseline from user's actual intake + biomarkers (no interventions)
+  const baseBreakdown = useMemo(
+    () => computeHealthspan(intake, [], activeBiomarkers),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [intake, parsedBiomarkers],
+  );
+
+  // Mock intervention effects for gap reduction and domain deltas
   const proj = projectScores(interventions);
-  const bioAge = projectBioAge(intake.age, interventions);
-  const bioBand = bandFromGap(bioAge.projectedGap);
+  const interventionGapReduction = Math.max(0, INITIAL_BIO_AGE_GAP - proj.bioAgeGap);
+  const dynamicBaseGap = Math.max(0, +((100 - baseBreakdown.overall) * 0.14).toFixed(1));
+  const dynamicProjectedGap = Math.max(0, +(dynamicBaseGap - interventionGapReduction).toFixed(1));
+  const bioBand = bandFromGap(dynamicProjectedGap);
+
+  // Domain scores: real baseline + mock intervention deltas (same hybrid as simulator)
+  const baseScoreMap = Object.fromEntries(
+    baseBreakdown.domains.map((d) => [d.key, d.score])
+  ) as Record<DomainKey, number>;
+
   const domains = INITIAL_DOMAINS.map((d) => {
-    const s = proj.domains[d.key];
+    const before = baseScoreMap[d.key] ?? proj.baselineDomains[d.key];
+    const mockDelta = proj.domains[d.key] - proj.baselineDomains[d.key];
+    const s = Math.min(100, Math.round(before + mockDelta));
     const status: "optimal" | "watch" | "priority" = s >= 75 ? "optimal" : s >= 60 ? "watch" : "priority";
     return { ...d, score: s, status };
   });
@@ -91,14 +134,14 @@ function TwinMap() {
         <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
           Biological age
         </span>
-        <span
+          <span
           className="text-[12px] font-display tabular-nums"
           style={{ color: `var(--${bioBand.color})` }}
         >
-          {bioAge.projectedBioAge} yr
+          {+(intake.age + dynamicProjectedGap).toFixed(1)} yr
         </span>
         <span className="text-[11px] text-muted-foreground">
-          · +{proj.bioAgeGap} vs chrono
+          · +{dynamicProjectedGap} vs chrono
         </span>
         <span
           className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full hidden sm:inline"
@@ -127,8 +170,8 @@ function TwinMap() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
                 <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Your twin</div>
-                <div className="font-display text-3xl neon-text-green">Alex M.</div>
-                <div className="font-mono text-xs text-muted-foreground mt-1">Healthspan {proj.healthspan} · body-age +{proj.bioAgeGap}y</div>
+                <div className="font-display text-3xl neon-text-green">{intake.name ? intake.name.split(" ")[0] : "You"}</div>
+                <div className="font-mono text-xs text-muted-foreground mt-1">Healthspan {baseBreakdown.overall} · body-age +{dynamicProjectedGap}y</div>
               </div>
             </div>
 

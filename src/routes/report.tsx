@@ -2,12 +2,35 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { useTwin } from "@/lib/twin-context";
 import {
-  INITIAL_DOMAINS, INTERVENTIONS, SAMPLE_BIOMARKERS, projectScores,
+  INITIAL_BIO_AGE_GAP, INITIAL_DOMAINS, INTERVENTIONS, SAMPLE_BIOMARKERS, projectScores,
   type Status, type Biomarker, type DomainKey,
 } from "@/lib/mockData";
-import { projectBioAge, bandFromGap } from "@/lib/bioAgeProjection";
+import { bandFromGap } from "@/lib/bioAgeProjection";
+import { computeHealthspan } from "@/lib/scoringEngine";
+import type { ParsedBiomarkers } from "@/lib/twin-context";
 import { TrustNote } from "@/components/TrustNote";
 import { Copy, Printer, FileText } from "lucide-react";
+
+function parsedToBiomarkers(p: ParsedBiomarkers): Biomarker[] {
+  const band = (v: number, lo: number, hi: number): Status =>
+    v < lo ? "optimal" : v < hi ? "watch" : "priority";
+  const rev = (v: number, lo: number, hi: number): Status =>
+    v >= lo ? "optimal" : v >= hi ? "watch" : "priority";
+  return [
+    { name: "HbA1c",          value: p.hba1c,           unit: "%",        optimal: "< 5.4",    status: band(p.hba1c, 5.4, 6) },
+    { name: "Fasting Glucose", value: p.fasting_glucose, unit: "mg/dL",    optimal: "70–95",    status: band(p.fasting_glucose, 95, 110) },
+    { name: "ApoB",            value: p.apob,            unit: "mg/dL",    optimal: "< 80",     status: band(p.apob, 80, 100) },
+    { name: "LDL-C",           value: p.ldl_c,           unit: "mg/dL",    optimal: "< 100",    status: band(p.ldl_c, 100, 130) },
+    { name: "HDL-C",           value: p.hdl_c,           unit: "mg/dL",    optimal: "> 50",     status: rev(p.hdl_c, 50, 40) },
+    { name: "Triglycerides",   value: p.triglycerides,   unit: "mg/dL",    optimal: "< 100",    status: band(p.triglycerides, 100, 175) },
+    { name: "hs-CRP",          value: p.hs_crp,          unit: "mg/L",     optimal: "< 1.0",    status: band(p.hs_crp, 1, 3) },
+    { name: "Vitamin D",       value: p.vitamin_d,       unit: "ng/mL",    optimal: "40–60",    status: rev(p.vitamin_d, 40, 25) },
+    { name: "Resting HR",      value: p.resting_hr,      unit: "bpm",      optimal: "55–65",    status: band(p.resting_hr, 65, 75) },
+    { name: "HRV",             value: p.hrv,             unit: "ms",       optimal: "> 50",     status: rev(p.hrv, 50, 35) },
+    { name: "Sleep Duration",  value: p.sleep_duration,  unit: "hr/night", optimal: "7–8.5",    status: rev(p.sleep_duration, 7, 6) },
+    { name: "VO2 max",         value: p.vo2_max,         unit: "ml/kg/min",optimal: "> 42",     status: rev(p.vo2_max, 42, 35) },
+  ];
+}
 
 export const Route = createFileRoute("/report")({
   component: Report,
@@ -109,15 +132,28 @@ function formatDate(d: Date): string {
 function formatClinicianSummaryText(args: {
   intake: ReturnType<typeof useTwin>["intake"];
   generatedAt: Date;
-  proj: ReturnType<typeof projectScores>;
   bottlenecks: { key: DomainKey; label: string; score: number }[];
   active: typeof INTERVENTIONS;
-  bioAge: { projectedBioAge: number; projectedGap: number };
+  biomarkers: Biomarker[];
   bioBandLabel: string;
+  baselineScore: number;
+  projectedScore: number;
+  scoreDelta: number;
+  dynamicBaseGap: number;
+  dynamicProjectedGap: number;
+  domainScores: Record<DomainKey, number>;
 }): string {
-  const { intake, generatedAt, proj, bottlenecks, active, bioAge, bioBandLabel } = args;
+  const {
+    intake, generatedAt, bottlenecks, active, biomarkers, bioBandLabel,
+    baselineScore, projectedScore, scoreDelta,
+    dynamicBaseGap, dynamicProjectedGap, domainScores,
+  } = args;
+  const baselineBioAge = +(intake.age + dynamicBaseGap).toFixed(1);
+  const projectedBioAge = +(intake.age + dynamicProjectedGap).toFixed(1);
+  const yearsImproved = +(dynamicBaseGap - dynamicProjectedGap).toFixed(1);
+
   const lines: string[] = [];
-  lines.push("MediTwin Clinician Visit Brief");
+  lines.push("LIFE Clinician Visit Brief");
   lines.push(`Generated: ${formatDate(generatedAt)} · Prototype educational report`);
   lines.push("");
 
@@ -126,7 +162,7 @@ function formatClinicianSummaryText(args: {
   lines.push(`  Age (chronological):   ${intake.age} yr`);
   lines.push(`  Sex:                   ${intake.sex}`);
   lines.push(
-    `  Biological age (proxy):${" "}${bioAge.projectedBioAge} yr  (+${proj.bioAgeGap} vs chronological · ${bioBandLabel})`,
+    `  Biological age (proxy): ${projectedBioAge} yr  (+${dynamicProjectedGap.toFixed(1)} vs chronological · ${bioBandLabel})`,
   );
   lines.push(`  Primary goals:         ${intake.goals.join(", ") || "—"}`);
   lines.push(`  Wearable:              ${intake.wearable}`);
@@ -144,7 +180,7 @@ function formatClinicianSummaryText(args: {
   lines.push("");
 
   lines.push("BIOMARKER SUMMARY");
-  SAMPLE_BIOMARKERS.forEach((b) => {
+  biomarkers.forEach((b) => {
     lines.push(
       `  ${b.name}: ${b.value} ${b.unit}  (target ${b.optimal})  — ${statusLabel(b.status)}` +
         (b.note ? `; ${b.note}` : ""),
@@ -163,28 +199,20 @@ function formatClinicianSummaryText(args: {
 
   lines.push("DIGITAL TWIN DOMAIN SUMMARY (prototype directional estimates)");
   INITIAL_DOMAINS.forEach((d) => {
-    lines.push(`  ${d.label}: ${proj.domains[d.key]}/100`);
+    lines.push(`  ${d.label}: ${domainScores[d.key]}/100`);
   });
   lines.push("");
 
   lines.push("COMPOSITE SNAPSHOT & 90-DAY PROJECTION");
-  // Baseline bio-age = chronological age + the original gap (7.2 in this
-  // prototype). Kept literal so the plaintext doesn't drift from the rendered
-  // composite block.
-  const baseBio = +(intake.age + 7.2).toFixed(1);
-  const projDelta =
-    proj.healthspan > proj.baselineHealthspan
-      ? `(+${proj.healthspan - proj.baselineHealthspan})`
-      : "(no change)";
-  const bioImproved = +(7.2 - proj.bioAgeGap).toFixed(1);
-  const bioDeltaStr = bioImproved > 0 ? `· −${bioImproved} yr` : "(no change)";
+  const projDelta = scoreDelta > 0 ? `(+${scoreDelta})` : "(no change)";
+  const bioDeltaStr = yearsImproved > 0 ? `· −${yearsImproved} yr` : "(no change)";
   lines.push(
-    `  Today    Healthspan ${proj.baselineHealthspan}/100   ` +
-      `Bio-age proxy ${baseBio} yr (+7.2)`,
+    `  Today    Healthspan ${baselineScore}/100   ` +
+      `Bio-age proxy ${baselineBioAge} yr (+${dynamicBaseGap.toFixed(1)})`,
   );
   lines.push(
-    `  90 days  Healthspan ${proj.healthspan}/100 ${projDelta}   ` +
-      `Bio-age proxy ${bioAge.projectedBioAge} yr (+${proj.bioAgeGap}) ${bioDeltaStr}`,
+    `  90 days  Healthspan ${projectedScore}/100 ${projDelta}   ` +
+      `Bio-age proxy ${projectedBioAge} yr (+${dynamicProjectedGap.toFixed(1)}) ${bioDeltaStr}`,
   );
   lines.push(
     "  Note: assumes maintenance of the interventions listed in 'Selected User Interventions'.",
@@ -216,11 +244,11 @@ function formatClinicianSummaryText(args: {
 
   lines.push("SAFETY & SCOPE");
   lines.push(
-    "  MediTwin is an educational decision-support prototype. It does not diagnose,",
+    "  LIFE is an educational decision-support prototype. It does not diagnose,",
   );
   lines.push("  treat, prescribe, or replace clinical judgment.");
   lines.push("");
-  lines.push("Generated by MediTwin");
+  lines.push("Generated by LIFE");
 
   return lines.join("\n");
 }
@@ -230,26 +258,58 @@ function formatClinicianSummaryText(args: {
 /* ------------------------------------------------------------------ */
 
 function Report() {
-  const { intake, interventions } = useTwin();
-  const proj = projectScores(interventions);
-  const bioAge = useMemo(
-    () => projectBioAge(intake.age, interventions),
-    [intake.age, interventions],
+  const { intake, interventions, parsedBiomarkers } = useTwin();
+
+  const activeBiomarkers: Biomarker[] = parsedBiomarkers
+    ? parsedToBiomarkers(parsedBiomarkers)
+    : SAMPLE_BIOMARKERS;
+
+  // Real personalized baseline (no interventions) using actual biomarkers
+  const baseBreakdown = useMemo(
+    () => computeHealthspan(intake, [], activeBiomarkers),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [intake, parsedBiomarkers],
   );
-  const bioBand = bandFromGap(bioAge.projectedGap);
+
+  // Mock intervention effect table for gap reduction and domain/score deltas
+  const proj = projectScores(interventions);
+  const healthDelta = proj.healthspan - proj.baselineHealthspan;
+  const baselineScore = baseBreakdown.overall;
+  const projectedScore = Math.min(100, Math.round(baselineScore + healthDelta));
+  const scoreDelta = healthDelta;
+
+  // Dynamic bio-age: personalized baseline + intervention gap reduction
+  const interventionGapReduction = Math.max(0, INITIAL_BIO_AGE_GAP - proj.bioAgeGap);
+  const dynamicBaseGap = Math.max(0, +((100 - baselineScore) * 0.14).toFixed(1));
+  const dynamicProjectedGap = Math.max(0, +(dynamicBaseGap - interventionGapReduction).toFixed(1));
+  const bioBand = bandFromGap(dynamicProjectedGap);
+
+  // Domain scores: real baseline + mock intervention deltas
+  const domainScores = useMemo(() => {
+    const baseMap = Object.fromEntries(
+      baseBreakdown.domains.map((d) => [d.key, d.score])
+    ) as Record<DomainKey, number>;
+    return Object.fromEntries(
+      INITIAL_DOMAINS.map((d) => {
+        const mockDelta = proj.domains[d.key] - proj.baselineDomains[d.key];
+        return [d.key, Math.min(100, Math.round((baseMap[d.key] ?? proj.baselineDomains[d.key]) + mockDelta))];
+      })
+    ) as Record<DomainKey, number>;
+  }, [baseBreakdown, proj.domains, proj.baselineDomains]);
+
   const generatedAt = useMemo(() => new Date(), []);
   const [copied, setCopied] = useState(false);
 
+  // Bottlenecks sorted by real projected domain score (lowest first)
   const bottlenecks = useMemo(
     () =>
       [...INITIAL_DOMAINS]
-        .map((d) => ({ key: d.key, label: d.label, score: proj.domains[d.key] }))
+        .map((d) => ({ key: d.key, label: d.label, score: domainScores[d.key] }))
         .sort((a, b) => a.score - b.score),
-    [proj.domains],
+    [domainScores],
   );
   const top3 = bottlenecks.slice(0, 3);
   const active = INTERVENTIONS.filter((i) => interventions.includes(i.id));
-  const scoreDelta = proj.healthspan - proj.baselineHealthspan;
 
   const handlePrint = useCallback(() => {
     if (typeof window !== "undefined") window.print();
@@ -259,21 +319,23 @@ function Report() {
     const text = formatClinicianSummaryText({
       intake,
       generatedAt,
-      proj,
       bottlenecks: top3,
       active,
-      bioAge: {
-        projectedBioAge: bioAge.projectedBioAge,
-        projectedGap: bioAge.projectedGap,
-      },
+      biomarkers: activeBiomarkers,
       bioBandLabel: bioBand.label,
+      baselineScore,
+      projectedScore,
+      scoreDelta,
+      dynamicBaseGap,
+      dynamicProjectedGap,
+      domainScores,
     });
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [intake, generatedAt, proj, top3, active, bioAge, bioBand]);
+  }, [intake, generatedAt, top3, active, activeBiomarkers, bioBand, baselineScore, projectedScore, scoreDelta, dynamicBaseGap, dynamicProjectedGap, domainScores]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
@@ -318,7 +380,7 @@ function Report() {
           <div className="flex-1 min-w-0">
             <div className="font-display text-xl font-semibold">{intake.name}</div>
             <div className="text-xs text-muted-foreground">
-              Age {intake.age} · {intake.sex} · MediTwin Clinician Visit Brief
+              Age {intake.age} · {intake.sex} · LIFE Clinician Visit Brief
             </div>
           </div>
           <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded border border-[var(--neon-orange)]/40 text-[var(--neon-orange)] whitespace-nowrap">
@@ -333,7 +395,7 @@ function Report() {
             <Kv k="Age (chronological)" v={`${intake.age} yr`} />
             <Kv
               k="Biological age (proxy)"
-              v={`${bioAge.projectedBioAge} yr · +${proj.bioAgeGap} vs chronological · ${bioBand.label}`}
+              v={`${+(intake.age + dynamicProjectedGap).toFixed(1)} yr · +${dynamicProjectedGap.toFixed(1)} vs chronological · ${bioBand.label}`}
             />
             <Kv k="Sex" v={intake.sex} />
             <Kv k="Primary goals" v={intake.goals.join(", ") || "—"} />
@@ -363,7 +425,7 @@ function Report() {
 
         {/* 3 · Biomarker Summary */}
         <ReportSection step={3} title="Biomarker Summary">
-          <BiomarkerTable markers={SAMPLE_BIOMARKERS} />
+          <BiomarkerTable markers={activeBiomarkers} />
         </ReportSection>
 
         {/* 4 · User-Reported Lifestyle Context */}
@@ -390,7 +452,7 @@ function Report() {
                 className="border border-border rounded-md p-2.5 flex items-center justify-between text-sm"
               >
                 <span>{d.label}</span>
-                <span className="font-mono tabular-nums">{proj.domains[d.key]} / 100</span>
+                <span className="font-mono tabular-nums">{domainScores[d.key]} / 100</span>
               </div>
             ))}
           </div>
@@ -410,15 +472,15 @@ function Report() {
                 <div className="text-sm mt-1">
                   Healthspan score{" "}
                   <span className="font-mono tabular-nums">
-                    {proj.baselineHealthspan} / 100
+                    {baselineScore} / 100
                   </span>
                 </div>
                 <div className="text-[12px] text-muted-foreground mt-0.5">
                   Bio-age proxy{" "}
                   <span className="font-mono tabular-nums">
-                    {bioAge.baselineBioAge} yr
+                    {+(intake.age + dynamicBaseGap).toFixed(1)} yr
                   </span>{" "}
-                  (+{bioAge.baselineGap.toFixed(1)} vs chronological)
+                  (+{dynamicBaseGap.toFixed(1)} vs chronological)
                 </div>
               </div>
               <div className="border border-border rounded-md p-3">
@@ -431,7 +493,7 @@ function Report() {
                 <div className="text-sm mt-1">
                   Healthspan score{" "}
                   <span className="font-mono tabular-nums">
-                    {proj.healthspan} / 100
+                    {projectedScore} / 100
                   </span>
                   {scoreDelta > 0 && (
                     <span className="text-muted-foreground"> (+{scoreDelta})</span>
@@ -440,11 +502,11 @@ function Report() {
                 <div className="text-[12px] text-muted-foreground mt-0.5">
                   Bio-age proxy{" "}
                   <span className="font-mono tabular-nums">
-                    {bioAge.projectedBioAge} yr
+                    {+(intake.age + dynamicProjectedGap).toFixed(1)} yr
                   </span>{" "}
-                  (+{bioAge.projectedGap.toFixed(1)})
-                  {bioAge.yearsImproved > 0 && (
-                    <span> · −{bioAge.yearsImproved} yr</span>
+                  (+{dynamicProjectedGap.toFixed(1)})
+                  {dynamicProjectedGap < dynamicBaseGap && (
+                    <span> · −{+(dynamicBaseGap - dynamicProjectedGap).toFixed(1)} yr</span>
                   )}
                 </div>
               </div>
@@ -509,7 +571,7 @@ function Report() {
         {/* 9 · Safety & Scope */}
         <ReportSection step={9} title="Safety & Scope">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            MediTwin is an educational decision-support prototype. It does not diagnose,
+            LIFE is an educational decision-support prototype. It does not diagnose,
             treat, prescribe, or replace clinical judgment. All thresholds, projections, and
             discussion items are directional and intended to support the user&rsquo;s
             conversation with a licensed clinician.
@@ -521,7 +583,7 @@ function Report() {
           <TrustNote variant="clinical" />
         </div>
         <div className="flex items-center justify-between pt-1 text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
-          <span>Generated by MediTwin</span>
+          <span>Generated by LIFE</span>
           <span>{formatDate(generatedAt)}</span>
         </div>
       </div>

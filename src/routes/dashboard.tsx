@@ -9,10 +9,10 @@ import {
 } from "lucide-react";
 import { useTwin } from "@/lib/twin-context";
 import {
-  INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, SAMPLE_BIOMARKERS, projectScores,
+  INITIAL_DOMAINS, SAMPLE_BIOMARKERS, projectScores,
   type Biomarker, type DomainKey,
 } from "@/lib/mockData";
-import { projectBioAge, bandFromGap } from "@/lib/bioAgeProjection";
+import { bandFromGap } from "@/lib/bioAgeProjection";
 import { HealthGauge } from "@/components/HealthGauge";
 import { ScoreBreakdown } from "@/components/ScoreBreakdown";
 import { computeHealthspan, type DomainBreakdown } from "@/lib/scoringEngine";
@@ -160,10 +160,14 @@ const INGREDIENTS: {
 function Dashboard() {
   const { interventions, intake, parsedBiomarkers, score, scoreLoading, scoreError, computeScore } = useTwin();
   const projected = projectScores(interventions);
-  const bioAge = projectBioAge(intake.age, interventions);
-  const bioBand = bandFromGap(bioAge.projectedGap);
   const fallbackBreakdown = computeHealthspan(intake, interventions);
   const breakdown = score?.breakdown ?? fallbackBreakdown;
+
+  // Bio-age gap derived from the live healthspan score so it responds to
+  // actual intake changes (sleep, stress, diet, exercise), not just interventions.
+  const liveHs = score?.overallHealthspanScore ?? breakdown.overall;
+  const dynamicBioAgeGap = Math.max(0, +((100 - liveHs) * 0.14).toFixed(1));
+  const bioBand = bandFromGap(dynamicBioAgeGap);
   const fallbackDomains = INITIAL_DOMAINS.map((d) => ({ ...d, score: projected.domains[d.key] }));
   const domains = score?.domains ?? fallbackDomains;
 
@@ -299,7 +303,7 @@ function Dashboard() {
                 textShadow: `0 0 14px color-mix(in oklab, var(--${bioBand.color}) 28%, transparent)`,
               }}
             >
-              {bioAge.projectedBioAge}
+              {+(intake.age + dynamicBioAgeGap).toFixed(1)}
             </div>
             <div className="text-xs text-muted-foreground">
               yr · chronological {intake.age}
@@ -312,20 +316,10 @@ function Dashboard() {
                 className="font-mono"
                 style={{ color: `var(--${bioBand.color})` }}
               >
-                +{projected.bioAgeGap} yr {SECTION_COPY.estimatedAgeGap.toLowerCase()}
+                +{dynamicBioAgeGap} yr {SECTION_COPY.estimatedAgeGap.toLowerCase()}
               </span>
               {" · "}
-              started at +{INITIAL_BIO_AGE_GAP}.
-              {bioAge.yearsImproved > 0 && (
-                <>
-                  {" "}
-                  Your selected habits could trim{" "}
-                  <span className="text-[var(--neon-green)] font-medium">
-                    {bioAge.yearsImproved} yr
-                  </span>{" "}
-                  off this.
-                </>
-              )}
+              directional estimate based on your profile.
             </div>
             <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--neon-blue)] inline-flex items-center gap-1 shrink-0 group-hover:translate-x-0.5 transition">
               See full clock <ArrowRight className="h-3 w-3" />
@@ -435,7 +429,7 @@ function Dashboard() {
       {/* Your key health signals — grouped by system with friendly chips */}
       <HealthSignalsSection biomarkers={labBiomarkers} />
 
-      {/* How MediTwin builds your score — gamified ingredients + drawer */}
+      {/* How LIFE builds your score — gamified ingredients + drawer */}
       <ScoreRecipeSection breakdown={breakdown} />
 
       <div className="flex flex-wrap gap-3 justify-end items-center">
@@ -866,7 +860,7 @@ function ScoreRecipeSection({
             How your twin thinks
           </div>
         </div>
-        <h2 className="font-display text-2xl mt-1">How MediTwin builds your score</h2>
+        <h2 className="font-display text-2xl mt-1">How LIFE builds your score</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
           Your Twin Readiness Score is a recipe, not a verdict. Six ingredients combine in
           fixed proportions — open any one to see the small inputs inside it.

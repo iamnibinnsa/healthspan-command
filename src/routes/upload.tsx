@@ -200,7 +200,7 @@ function LabUpload() {
             </div>
             <div className="text-left flex-1">
               <div className="font-display text-lg font-semibold">Use Sample Lab Report</div>
-              <div className="text-xs text-muted-foreground">Alex Morgan · 48 · comprehensive metabolic + lipid panel</div>
+              <div className="text-xs text-muted-foreground">Sample patient · comprehensive metabolic + lipid panel</div>
             </div>
             <span className="text-xs neon-text-green opacity-0 group-hover:opacity-100 transition">Load →</span>
           </button>

@@ -1,12 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Brain, HeartPulse, Activity, Moon, Dumbbell, Flame, ShieldCheck, Sparkles } from "lucide-react";
 import { CTA, MICROCOPY } from "@/lib/copy";
+import { useTwin } from "@/lib/twin-context";
 
 export const Route = createFileRoute("/")({
   component: Landing,
 });
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 6);
+  return `${parts[0][0]}. ${parts[parts.length - 1]}`;
+}
+
 function Landing() {
+  const { intake } = useTwin();
   return (
     <div className="relative">
       {/* Hero */}
@@ -26,7 +34,7 @@ function Landing() {
               {" "}twin?
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              MediTwin turns your labs, habits, and wearable health signals into a friendly digital twin
+              LIFE turns your labs, habits, and wearable health signals into a friendly digital twin
               that helps you understand your body, try small changes, and build a 90-day guide
               with confidence.
             </p>
@@ -90,8 +98,8 @@ function Landing() {
                 <NodeIcon Icon={Activity} color="neon-orange" pos="" />
                 <div className="text-center">
                   <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Your twin</div>
-                  <div className="font-display text-2xl neon-text-green">Alex M.</div>
-                  <div className="text-[10px] text-muted-foreground">Age 48 · feels supported</div>
+                  <div className="font-display text-2xl neon-text-green">{intake.name ? initials(intake.name) : "You"}</div>
+                  <div className="text-[10px] text-muted-foreground">{intake.age > 0 ? `Age ${intake.age}` : "Your profile"} · feels supported</div>
                 </div>
                 <NodeIcon Icon={Flame} color="neon-orange" pos="" />
                 <NodeIcon Icon={Dumbbell} color="neon-green" pos="" />

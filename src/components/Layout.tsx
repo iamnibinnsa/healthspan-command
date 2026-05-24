@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Activity, LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { useTwin } from "@/lib/twin-context";
@@ -14,7 +14,6 @@ const NAV = [
   { to: "/simulator", label: "Try Changes" },
   { to: "/plan", label: "90-Day Plan" },
   { to: "/report", label: "Doctor Brief" },
-  { to: "/investor", label: "Investor" },
 ] as const;
 
 function isNavActive(pathname: string, to: string) {
@@ -66,14 +65,11 @@ export function Layout({ children }: { children: ReactNode }) {
       <header className="site-chrome sticky top-0 z-40 backdrop-blur-xl bg-background/60 border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2 group shrink-0">
-            <div className="relative h-8 w-8 rounded-lg glass flex items-center justify-center">
-              <Activity className="h-4 w-4 text-[var(--neon-blue)]" />
-              <span className="absolute inset-0 rounded-lg neon-border-blue opacity-60 group-hover:opacity-100 transition" />
-            </div>
+            <img src="/LIFE_logo.png" alt="LIFE logo" className="h-12 w-12 rounded-lg object-contain" />
             <div className="leading-tight hidden sm:block">
-              <div className="font-display font-semibold tracking-tight">MediTwin</div>
+              <div className="font-display font-bold tracking-tight text-lg">LIFE</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground hidden sm:block">
-                Your future-health twin
+                Be the CEO of your own health
               </div>
             </div>
           </Link>
@@ -131,11 +127,11 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 text-xs text-muted-foreground space-y-2">
           <p className="leading-relaxed">
             <span className="text-foreground font-semibold">Disclaimer.</span>{" "}
-            MediTwin is an educational decision-support prototype. It does not diagnose, treat,
+            LIFE is an educational decision-support prototype. It does not diagnose, treat,
             or prescribe. Discuss medical decisions with a licensed clinician. All scores and
             simulations are projected directional estimates for demonstration purposes.
           </p>
-          <p className="opacity-60">© {new Date().getFullYear()} MediTwin · Caltech Longevity Hackathon</p>
+          <p className="opacity-60">© {new Date().getFullYear()} LIFE · Caltech Longevity Hackathon</p>
         </div>
       </footer>
     </div>

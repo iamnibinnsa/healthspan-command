@@ -15,7 +15,6 @@ import { Route as SimulatorRouteImport } from './routes/simulator'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as InvestorRouteImport } from './routes/investor'
 import { Route as IntakeRouteImport } from './routes/intake'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClockRouteImport } from './routes/clock'
@@ -51,11 +50,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InvestorRoute = InvestorRouteImport.update({
-  id: '/investor',
-  path: '/investor',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IntakeRoute = IntakeRouteImport.update({
   id: '/intake',
   path: '/intake',
@@ -82,7 +76,6 @@ export interface FileRoutesByFullPath {
   '/clock': typeof ClockRoute
   '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
-  '/investor': typeof InvestorRoute
   '/login': typeof LoginRoute
   '/plan': typeof PlanRoute
   '/report': typeof ReportRoute
@@ -95,7 +88,6 @@ export interface FileRoutesByTo {
   '/clock': typeof ClockRoute
   '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
-  '/investor': typeof InvestorRoute
   '/login': typeof LoginRoute
   '/plan': typeof PlanRoute
   '/report': typeof ReportRoute
@@ -109,7 +101,6 @@ export interface FileRoutesById {
   '/clock': typeof ClockRoute
   '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
-  '/investor': typeof InvestorRoute
   '/login': typeof LoginRoute
   '/plan': typeof PlanRoute
   '/report': typeof ReportRoute
@@ -124,7 +115,6 @@ export interface FileRouteTypes {
     | '/clock'
     | '/dashboard'
     | '/intake'
-    | '/investor'
     | '/login'
     | '/plan'
     | '/report'
@@ -137,7 +127,6 @@ export interface FileRouteTypes {
     | '/clock'
     | '/dashboard'
     | '/intake'
-    | '/investor'
     | '/login'
     | '/plan'
     | '/report'
@@ -150,7 +139,6 @@ export interface FileRouteTypes {
     | '/clock'
     | '/dashboard'
     | '/intake'
-    | '/investor'
     | '/login'
     | '/plan'
     | '/report'
@@ -164,7 +152,6 @@ export interface RootRouteChildren {
   ClockRoute: typeof ClockRoute
   DashboardRoute: typeof DashboardRoute
   IntakeRoute: typeof IntakeRoute
-  InvestorRoute: typeof InvestorRoute
   LoginRoute: typeof LoginRoute
   PlanRoute: typeof PlanRoute
   ReportRoute: typeof ReportRoute
@@ -217,13 +204,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/investor': {
-      id: '/investor'
-      path: '/investor'
-      fullPath: '/investor'
-      preLoaderRoute: typeof InvestorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/intake': {
       id: '/intake'
       path: '/intake'
@@ -260,7 +240,6 @@ const rootRouteChildren: RootRouteChildren = {
   ClockRoute: ClockRoute,
   DashboardRoute: DashboardRoute,
   IntakeRoute: IntakeRoute,
-  InvestorRoute: InvestorRoute,
   LoginRoute: LoginRoute,
   PlanRoute: PlanRoute,
   ReportRoute: ReportRoute,

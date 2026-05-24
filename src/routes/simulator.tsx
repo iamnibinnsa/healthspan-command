@@ -2,10 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTwin } from "@/lib/twin-context";
 import {
-  INITIAL_DOMAINS, INITIAL_BIO_AGE_GAP, INTERVENTIONS, projectScores,
-  type DomainKey,
+  INITIAL_BIO_AGE_GAP, INITIAL_DOMAINS, INTERVENTIONS, SAMPLE_BIOMARKERS, projectScores,
+  type Biomarker, type DomainKey,
 } from "@/lib/mockData";
-import { projectBioAge, bandFromGap, bioAgeReductionFromIds } from "@/lib/bioAgeProjection";
+import type { ParsedBiomarkers } from "@/lib/twin-context";
+import { bandFromGap, bioAgeReductionFromIds } from "@/lib/bioAgeProjection";
+import { computeHealthspan } from "@/lib/scoringEngine";
 import { CTA, MICROCOPY } from "@/lib/copy";
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Legend, Tooltip,
@@ -100,8 +102,27 @@ function sectionActiveIds(section: SectionKey, s: PlaygroundState): string[] {
 /*  Page                                                                */
 /* ------------------------------------------------------------------ */
 
+function parsedToBiomarkers(p: ParsedBiomarkers): Biomarker[] {
+  return [
+    { name: "HbA1c",           value: p.hba1c,           unit: "%",         optimal: "< 5.4",     status: "watch" as const },
+    { name: "Fasting Glucose", value: p.fasting_glucose, unit: "mg/dL",     optimal: "70–95",     status: "watch" as const },
+    { name: "ApoB",            value: p.apob,            unit: "mg/dL",     optimal: "< 80",      status: "watch" as const },
+    { name: "LDL-C",           value: p.ldl_c,           unit: "mg/dL",     optimal: "< 100",     status: "watch" as const },
+    { name: "HDL-C",           value: p.hdl_c,           unit: "mg/dL",     optimal: "> 50",      status: "watch" as const },
+    { name: "Triglycerides",   value: p.triglycerides,   unit: "mg/dL",     optimal: "< 100",     status: "watch" as const },
+    { name: "hs-CRP",          value: p.hs_crp,          unit: "mg/L",      optimal: "< 1.0",     status: "watch" as const },
+    { name: "Vitamin D",       value: p.vitamin_d,       unit: "ng/mL",     optimal: "40–60",     status: "watch" as const },
+    { name: "Resting HR",      value: p.resting_hr,      unit: "bpm",       optimal: "55–65",     status: "watch" as const },
+    { name: "HRV",             value: p.hrv,             unit: "ms",        optimal: "> 50",      status: "watch" as const },
+    { name: "VO2 max",         value: p.vo2_max,         unit: "ml/kg/min", optimal: "> 42",      status: "watch" as const },
+  ];
+}
+
 function Simulator() {
-  const { interventions, setInterventions, intake } = useTwin();
+  const { interventions, setInterventions, intake, parsedBiomarkers } = useTwin();
+  const activeBiomarkers: Biomarker[] = parsedBiomarkers
+    ? parsedToBiomarkers(parsedBiomarkers)
+    : SAMPLE_BIOMARKERS;
 
   const [state, setState] = useState<PlaygroundState>(() => deriveStateFromIds(interventions));
 
@@ -115,18 +136,41 @@ function Simulator() {
   }, [activeKey]);
 
   const proj = projectScores(activeIds);
-  const bioAge = useMemo(() => projectBioAge(intake.age, activeIds), [intake.age, activeIds]);
-  const bioBand = bandFromGap(bioAge.projectedGap);
 
-  const chartData = INITIAL_DOMAINS.map((d) => ({
-    name: d.short,
-    Before: proj.baselineDomains[d.key],
-    "With selected changes": proj.domains[d.key],
-    delta: proj.domains[d.key] - proj.baselineDomains[d.key],
-  }));
+  // Personalized baseline: real intake + real uploaded biomarkers (falls back to sample if none)
+  const baselineBreakdown = useMemo(
+    () => computeHealthspan(intake, [], activeBiomarkers),
+    // activeBiomarkers derives from parsedBiomarkers; list parsedBiomarkers to avoid stale memos
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [intake, parsedBiomarkers],
+  );
+  const dynamicBaseGap = Math.max(0, +((100 - baselineBreakdown.overall) * 0.14).toFixed(1));
+
+  // Intervention gap reduction = how many years the active interventions trim.
+  // projectScores calibrates against INITIAL_BIO_AGE_GAP (7.2), so the delta
+  // (INITIAL_BIO_AGE_GAP - proj.bioAgeGap) gives a pure intervention effect in years.
+  const interventionGapReduction = Math.max(0, INITIAL_BIO_AGE_GAP - proj.bioAgeGap);
+  const dynamicProjectedGap = Math.max(0, +(dynamicBaseGap - interventionGapReduction).toFixed(1));
+  const bioBand = bandFromGap(dynamicProjectedGap);
+
+  // Chart: "Before" uses real intake-based domain scores; "After" adds mock intervention deltas
+  const domainScoreMap = Object.fromEntries(
+    baselineBreakdown.domains.map((d) => [d.key, d.score])
+  ) as Record<DomainKey, number>;
+
+  const chartData = INITIAL_DOMAINS.map((d) => {
+    const before = Math.round(domainScoreMap[d.key] ?? proj.baselineDomains[d.key]);
+    const mockDelta = proj.domains[d.key] - proj.baselineDomains[d.key];
+    return {
+      name: d.short,
+      Before: before,
+      "With selected changes": Math.min(100, Math.round(before + mockDelta)),
+      delta: Math.round(mockDelta),
+    };
+  });
 
   const healthDelta = proj.healthspan - proj.baselineHealthspan;
-  const gapDelta = +(proj.bioAgeGap - INITIAL_BIO_AGE_GAP).toFixed(1);
+  const gapDelta = +(dynamicProjectedGap - dynamicBaseGap).toFixed(1);
 
   // Per-section bio-age contributions (years removed from gap)
   const recoveryYr  = bioAgeReductionFromIds(sectionActiveIds("recovery",  state));
@@ -189,14 +233,14 @@ function Simulator() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi
           label="Current score"
-          base={proj.baselineHealthspan}
-          value={proj.baselineHealthspan}
+          base={baselineBreakdown.overall}
+          value={baselineBreakdown.overall}
           color="neon-blue"
         />
         <Kpi
           label="Potential score"
-          base={proj.baselineHealthspan}
-          value={proj.healthspan}
+          base={baselineBreakdown.overall}
+          value={Math.min(100, baselineBreakdown.overall + healthDelta)}
           delta={healthDelta}
           color="neon-green"
           higherIsBetter
@@ -208,9 +252,9 @@ function Simulator() {
       {/* BIO-AGE PROJECTION STRIP */}
       <BioAgeProjectionStrip
         chronologicalAge={intake.age}
-        baselineBioAge={bioAge.baselineBioAge}
-        projectedBioAge={bioAge.projectedBioAge}
-        yearsImproved={bioAge.yearsImproved}
+        baselineBioAge={+(intake.age + dynamicBaseGap).toFixed(1)}
+        projectedBioAge={+(intake.age + dynamicProjectedGap).toFixed(1)}
+        yearsImproved={+(dynamicBaseGap - dynamicProjectedGap).toFixed(1)}
         bandLabel={bioBand.label}
         bandColor={bioBand.color}
       />
