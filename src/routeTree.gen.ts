@@ -14,6 +14,7 @@ import { Route as TwinRouteImport } from './routes/twin'
 import { Route as SimulatorRouteImport } from './routes/simulator'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as PlanRouteImport } from './routes/plan'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as InvestorRouteImport } from './routes/investor'
 import { Route as IntakeRouteImport } from './routes/intake'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -43,6 +44,11 @@ const ReportRoute = ReportRouteImport.update({
 const PlanRoute = PlanRouteImport.update({
   id: '/plan',
   path: '/plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvestorRoute = InvestorRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
   '/investor': typeof InvestorRoute
+  '/login': typeof LoginRoute
   '/plan': typeof PlanRoute
   '/report': typeof ReportRoute
   '/simulator': typeof SimulatorRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
   '/investor': typeof InvestorRoute
+  '/login': typeof LoginRoute
   '/plan': typeof PlanRoute
   '/report': typeof ReportRoute
   '/simulator': typeof SimulatorRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/intake': typeof IntakeRoute
   '/investor': typeof InvestorRoute
+  '/login': typeof LoginRoute
   '/plan': typeof PlanRoute
   '/report': typeof ReportRoute
   '/simulator': typeof SimulatorRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/intake'
     | '/investor'
+    | '/login'
     | '/plan'
     | '/report'
     | '/simulator'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/intake'
     | '/investor'
+    | '/login'
     | '/plan'
     | '/report'
     | '/simulator'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/intake'
     | '/investor'
+    | '/login'
     | '/plan'
     | '/report'
     | '/simulator'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   IntakeRoute: typeof IntakeRoute
   InvestorRoute: typeof InvestorRoute
+  LoginRoute: typeof LoginRoute
   PlanRoute: typeof PlanRoute
   ReportRoute: typeof ReportRoute
   SimulatorRoute: typeof SimulatorRoute
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/plan'
       fullPath: '/plan'
       preLoaderRoute: typeof PlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/investor': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   IntakeRoute: IntakeRoute,
   InvestorRoute: InvestorRoute,
+  LoginRoute: LoginRoute,
   PlanRoute: PlanRoute,
   ReportRoute: ReportRoute,
   SimulatorRoute: SimulatorRoute,
