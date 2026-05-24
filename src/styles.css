@@ -38,6 +38,7 @@
   --color-neon-blue: var(--neon-blue);
   --color-neon-green: var(--neon-green);
   --color-neon-orange: var(--neon-orange);
+  --color-neon-coral: var(--neon-coral);
   --color-neon-red: var(--neon-red);
   --color-glass: var(--glass);
 }
@@ -76,6 +77,7 @@
   --neon-blue: oklch(0.78 0.18 220);
   --neon-green: oklch(0.82 0.2 160);
   --neon-orange: oklch(0.78 0.18 55);
+  --neon-coral: oklch(0.74 0.14 35);
   --neon-red: oklch(0.7 0.22 25);
   --glass: oklch(0.25 0.04 250 / 45%);
 
@@ -119,6 +121,13 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--neon-blue);
+    outline-offset: 2px;
+  }
 }
 
 @layer components {
@@ -129,9 +138,11 @@
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     border: 1px solid color-mix(in oklab, var(--neon-blue) 25%, transparent);
+    border-radius: var(--radius-2xl);
     box-shadow:
       0 1px 0 0 color-mix(in oklab, var(--neon-blue) 18%, transparent) inset,
       0 20px 60px -30px color-mix(in oklab, var(--neon-blue) 50%, transparent);
+    transition: border-color 0.2s ease, box-shadow 0.25s ease, transform 0.2s ease;
   }
 
   .glass-soft {
@@ -191,7 +202,19 @@
   }
   .status-optimal { color: var(--neon-green); }
   .status-watch   { color: var(--neon-orange); }
-  .status-priority{ color: var(--neon-red); }
+  .status-priority{ color: var(--neon-coral); }
+
+  .page-enter {
+    animation: page-fade-in 0.35s ease-out;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 
   .scanlines {
     background-image: repeating-linear-gradient(
@@ -265,3 +288,113 @@
   50% { transform: translateY(-8px); }
 }
 .float { animation: float-y 6s ease-in-out infinite; }
+
+/* ------------------------------------------------------------------ */
+/*  Clinician Visit Brief — print styles                                */
+/* ------------------------------------------------------------------ */
+
+@media not print {
+  .print-only { display: none !important; }
+}
+
+@media print {
+  /* Force light background and ink-friendly defaults */
+  html, body {
+    background: white !important;
+    color: #111 !important;
+  }
+
+  /* Hide all non-printable chrome, then re-show the printable doc */
+  body * {
+    visibility: hidden !important;
+  }
+  .report-doc, .report-doc * {
+    visibility: visible !important;
+  }
+  .no-print, .no-print *,
+  .site-chrome, .site-chrome * {
+    display: none !important;
+  }
+
+  /* Position the doc so it occupies the full printed page */
+  .report-doc {
+    position: absolute !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Strip glass / neon / glow visuals across the printable doc */
+  .report-doc,
+  .report-doc * {
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    text-shadow: none !important;
+    color: #111 !important;
+    border-color: rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* Sans-serif typography for clinical legibility */
+  .report-doc {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+  .report-doc h1,
+  .report-doc h2,
+  .report-doc h3,
+  .report-doc .font-display {
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  /* Section heading appearance on print */
+  .report-doc .report-section-title {
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    border-bottom: 1px solid #111 !important;
+    padding-bottom: 3px !important;
+    margin-bottom: 6px !important;
+    text-transform: uppercase;
+  }
+
+  /* Professional table styling */
+  .report-doc table.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+  }
+  .report-doc table.report-table th,
+  .report-doc table.report-table td {
+    border: 1px solid #111 !important;
+    padding: 5px 7px !important;
+    text-align: left;
+    vertical-align: top;
+  }
+  .report-doc table.report-table th {
+    background: #efefef !important;
+    font-weight: 700 !important;
+  }
+  .report-doc table.report-table tr {
+    page-break-inside: avoid;
+  }
+
+  /* Subtle status indicator becomes a solid black dot on print */
+  .report-doc .status-dot {
+    background: #111 !important;
+    border: 0;
+  }
+
+  /* Keep each section together when the page break can accommodate it */
+  .report-doc .report-section {
+    page-break-inside: avoid;
+  }
+
+  /* Page setup */
+  @page {
+    size: Letter;
+    margin: 0.55in 0.65in 0.55in 0.65in;
+  }
+}

@@ -2,9 +2,13 @@ import { RadialBar, RadialBarChart, PolarAngleAxis, ResponsiveContainer } from "
 
 export function HealthGauge({ score, label = "Healthspan" }: { score: number; label?: string }) {
   const color =
-    score >= 75 ? "var(--neon-green)" : score >= 60 ? "var(--neon-blue)" : score >= 45 ? "var(--neon-orange)" : "var(--neon-red)";
+    score >= 75 ? "var(--neon-green)" : score >= 60 ? "var(--neon-blue)" : score >= 45 ? "var(--neon-orange)" : "var(--neon-coral)";
   const data = [{ name: "score", value: score, fill: color }];
-  const status = score >= 75 ? "OPTIMAL" : score >= 60 ? "ON TRACK" : score >= 45 ? "WATCH" : "PRIORITY";
+  const status =
+    score >= 75 ? "GLOWING"
+    : score >= 60 ? "ON TRACK"
+    : score >= 45 ? "WORTH A LOOK"
+    : "DISCUSS SOON";
 
   return (
     <div className="relative h-64 w-full">

@@ -31,7 +31,7 @@ export function ScoreBreakdown({ breakdown }: { breakdown: HealthspanBreakdown }
             Interpretable hackathon prototype. Each input is mapped to a 0–100
             sub-score via a piecewise-linear band (optimal → 100, unfavorable →
             0). Domain scores are weighted sums of their sub-scores. The overall
-            Healthspan Score is a fixed weighted sum across the six domains.
+            Twin Readiness Score is a fixed weighted sum across the six domains.
             <span className="block mt-2 italic">
               Not a clinically validated model. Educational directional estimate only.
             </span>
@@ -39,7 +39,7 @@ export function ScoreBreakdown({ breakdown }: { breakdown: HealthspanBreakdown }
 
           <div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-              Overall Healthspan Score formula
+              Twin Readiness Score formula
             </div>
             <div className="font-mono text-xs glass-soft rounded-lg p-3 leading-relaxed">
               0.20 × Metabolic + 0.20 × Cardio + 0.15 × Inflammation +

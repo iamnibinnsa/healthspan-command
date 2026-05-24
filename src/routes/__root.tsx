@@ -17,9 +17,12 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="max-w-md text-center glass rounded-2xl p-10">
         <h1 className="text-6xl font-display font-bold neon-text-blue">404</h1>
-        <p className="mt-3 text-sm text-muted-foreground">This sector of mission control doesn't exist.</p>
+        <p className="mt-3 text-sm text-muted-foreground">This page isn&rsquo;t part of your twin journey yet.</p>
         <Link to="/" className="mt-6 inline-flex px-4 py-2 rounded-lg btn-hero text-xs font-semibold">
           Return home
+        </Link>
+        <Link to="/intake" className="mt-3 inline-flex px-4 py-2 rounded-lg glass text-xs font-semibold">
+          Start your twin journey
         </Link>
       </div>
     </div>
@@ -32,8 +35,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="max-w-md text-center glass rounded-2xl p-10">
-        <h1 className="text-xl font-semibold">Telemetry interrupted</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Something went wrong. Try again.</p>
+        <h1 className="text-xl font-semibold">Something paused</h1>
+        <p className="mt-2 text-sm text-muted-foreground">We hit a snag loading your twin. Try again.</p>
         <button
           onClick={() => { router.invalidate(); reset(); }}
           className="mt-6 px-4 py-2 rounded-lg btn-hero text-xs font-semibold"
@@ -51,7 +54,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "MediTwin — Digital Medicine Twin for Longevity" },
-      { name: "description", content: "Upload labs. Map healthspan risks. Simulate interventions. Generate a 90-day plan." },
+      { name: "description", content: "Meet your digital medicine twin. Organize health signals, explore small changes, and build a 90-day guide with your clinician in mind." },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

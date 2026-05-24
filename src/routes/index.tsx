@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Brain, HeartPulse, Activity, Moon, Dumbbell, Flame, Atom } from "lucide-react";
+import { ArrowRight, Brain, HeartPulse, Activity, Moon, Dumbbell, Flame, ShieldCheck, Sparkles } from "lucide-react";
+import { CTA, MICROCOPY } from "@/lib/copy";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -9,37 +10,64 @@ function Landing() {
   return (
     <div className="relative">
       {/* Hero */}
-      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-28">
+      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-16 sm:pb-20">
         <div className="grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 space-y-7">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-soft text-[11px] font-mono text-[var(--neon-green)] border border-[var(--neon-green)]/30 w-fit">
+              <Sparkles className="h-3 w-3" />
+              <span className="uppercase tracking-[0.18em]">Step 1 of 4 · Build your twin profile</span>
+            </div>
+
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-semibold leading-[1.02]">
-              Your body has{" "}
+              Ready to meet your{" "}
               <span className="bg-gradient-to-r from-[var(--neon-blue)] via-[var(--neon-green)] to-[var(--neon-orange)] bg-clip-text text-transparent">
-                telemetry
+                future-health
               </span>
-              .<br />
-              MediTwin turns it into a{" "}
-              <span className="neon-text-green">mission plan</span>.
+              {" "}twin?
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              Most tools measure you. MediTwin models you. Upload labs, map risks across six body
-              systems, simulate interventions, and generate your 90-day plan.
+              MediTwin turns your labs, habits, and wearable health signals into a friendly digital twin
+              that helps you understand your body, try small changes, and build a 90-day guide
+              with confidence.
             </p>
+
             <div className="flex flex-wrap gap-3 pt-2">
-              <Link to="/intake" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl btn-hero text-sm font-semibold">
-                Start Healthspan Scan <ArrowRight className="h-4 w-4" />
+              <Link
+                to="/intake"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl btn-hero text-sm font-semibold"
+              >
+                Meet My Twin <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/upload"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl glass text-sm font-semibold hover:neon-border-green transition"
               >
-                Try Sample Demo
+                {CTA.exploreSampleTwin}
               </Link>
             </div>
-            <div className="flex items-center gap-6 pt-4 text-xs text-muted-foreground">
-              <Stat label="Body systems modeled" value="6" />
-              <Stat label="Biomarkers tracked" value="12+" />
-              <Stat label="Plan horizon" value="90 days" />
+
+            <div
+              className="inline-flex items-center gap-2 text-[12px] text-muted-foreground rounded-xl px-3 py-2 max-w-xl"
+              style={{
+                background:
+                  "linear-gradient(135deg, color-mix(in oklab, var(--neon-blue) 8%, transparent), color-mix(in oklab, var(--neon-green) 6%, transparent))",
+                border: "1px solid color-mix(in oklab, var(--neon-blue) 22%, transparent)",
+              }}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-[var(--neon-green)] shrink-0" />
+              <span>
+                {MICROCOPY.educationalSignals} {MICROCOPY.noJudgment}
+              </span>
+            </div>
+
+            <p className="text-[12px] text-muted-foreground max-w-xl leading-relaxed">
+              {MICROCOPY.smallChanges}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-2 text-xs text-muted-foreground">
+              <Stat label="Body systems explored" value="6" />
+              <Stat label="Health signals organized" value="12+" />
+              <Stat label="Care plan" value="90 days" />
             </div>
           </div>
 
@@ -61,9 +89,9 @@ function Landing() {
                 <NodeIcon Icon={HeartPulse} color="neon-red" pos="" />
                 <NodeIcon Icon={Activity} color="neon-orange" pos="" />
                 <div className="text-center">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Twin</div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Your twin</div>
                   <div className="font-display text-2xl neon-text-green">Alex M.</div>
-                  <div className="text-[10px] text-muted-foreground">Age 48</div>
+                  <div className="text-[10px] text-muted-foreground">Age 48 · feels supported</div>
                 </div>
                 <NodeIcon Icon={Flame} color="neon-orange" pos="" />
                 <NodeIcon Icon={Dumbbell} color="neon-green" pos="" />
@@ -71,21 +99,6 @@ function Landing() {
                 <NodeIcon Icon={Moon} color="neon-blue" pos="" />
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
-        <div className="glass rounded-3xl p-10 text-center neon-border-blue">
-          <h3 className="text-3xl font-display font-semibold">Ready to meet your twin?</h3>
-          <p className="text-sm text-muted-foreground mt-2">Demo runs in under 2 minutes with sample data.</p>
-          <div className="mt-6 flex justify-center gap-3 flex-wrap">
-            <Link to="/intake" className="px-6 py-3 rounded-xl btn-hero text-sm font-semibold">
-              Start Healthspan Scan
-            </Link>
-            <Link to="/upload" className="px-6 py-3 rounded-xl glass-soft text-sm font-semibold">
-              Try Sample Demo
-            </Link>
           </div>
         </div>
       </section>

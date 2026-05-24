@@ -246,5 +246,5 @@ export function projectScores(activeIds: string[]) {
 
 
 export function statusColor(s: Status) {
-  return s === "optimal" ? "neon-green" : s === "watch" ? "neon-orange" : "neon-red";
+  return s === "optimal" ? "neon-green" : s === "watch" ? "neon-orange" : "neon-coral";
 }

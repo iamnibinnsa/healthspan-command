@@ -13,7 +13,7 @@ const SLIDES: { eyebrow: string; title: string; body: string; bullets?: string[]
   {
     eyebrow: "02 · Solution",
     title: "A digital medicine twin for longevity",
-    body: "MediTwin ingests labs, intake, and wearable signals to build a six-system body model. It exposes a Mission Control dashboard, a what-if simulator, a personalized 90-day plan, and a clinician brief.",
+    body: "MediTwin ingests labs, intake, and wearable health signals to build a six-system body model. It exposes a health insights snapshot, a try-small-changes playground, a personalized 90-day guide, and a clinician visit brief.",
   },
   {
     eyebrow: "03 · Market",
